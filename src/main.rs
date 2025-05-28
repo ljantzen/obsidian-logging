@@ -13,8 +13,8 @@ fn main() {
     }
     let sentence = args.join(" ");
 
-    // Hent APP-sti
-    let app_dir = env::var("APP").expect("Miljøvariabelen APP er ikke satt");
+    // Hent OBSIDIAN_VAULT-sti
+    let vault_dir = env::var("OBSIDIAN_VAULT").expect("Miljøvariabelen OBSIDIAN_VAULT er ikke satt");
 
     // Tid og dato
     let now = Local::now();
@@ -25,16 +25,15 @@ fn main() {
     let time_str = format!("{:02}:{:02}", now.hour(), now.minute());
 
     // Filsti
-    let mut file_path = PathBuf::from(&app_dir);
+    let mut file_path = PathBuf::from(&vault_dir);
+    file_path.push("10-Journal");
     file_path.push(&year);
     file_path.push(&month);
-    file_path.push(&day);
     fs::create_dir_all(&file_path).expect("Kunne ikke opprette katalogstruktur");
     file_path.push(format!("{}.md", date_str));
-
     // Les innhold
     let content = read_to_string(&file_path).expect("Kunne ikke lese fil");
-    let lines: Vec<&str> = content.lines().collect();
+    let mut lines: Vec<&str> = content.lines().collect();
 
     // Finn første forekomst av "# Logg"
     if let Some(index) = lines.iter().position(|line| line.trim() == "## 🕗") {
@@ -54,5 +53,7 @@ fn main() {
         .expect("Kunne ikke åpne fil for skriving");
     let mut writer = BufWriter::new(file);
     writeln!(writer, "* {} {}", time_str, sentence).expect("Kunne ikke skrive logglinje");
+
+    println!("Log accepted");
 }
 
