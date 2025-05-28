@@ -10,7 +10,8 @@ $OBSIDIAN_VAULT/10-Journal/YYYY/mm/YYYY-MM-dd.md
 
 The last line of a fresh diary markdown file is a level 2 header: 
 
-```## 🕗
+```
+## 🕗
 ```
 
 This header signifies the start of the log of the day.  
