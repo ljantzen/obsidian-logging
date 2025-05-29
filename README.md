@@ -40,4 +40,6 @@ By specifying `-b <number>` you can go back in time and list the logs `number` o
 
 Removes the last log entry (undo)
 
+### -e or --edit
 
+Invokes $EDITOR with todays file.  Uses vim if $EDITOR is not set,

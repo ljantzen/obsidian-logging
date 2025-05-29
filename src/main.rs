@@ -1,6 +1,7 @@
 use std::env;
 use std::fs::{self, read_to_string, write};
 use std::path::PathBuf;
+use std::process::Command;
 use chrono::{Local, NaiveDate, NaiveTime, Duration, Datelike, Timelike};
 
 fn main() {
@@ -9,25 +10,26 @@ fn main() {
 
     match first_arg.as_deref() {
         Some("-l") | Some("--list") => list_log_for_day(0),
-        Some("-b") | Some("--back") => {
+        Some("-n") => {
             let n_days: i64 = args.next().unwrap_or_else(|| {
-                eprintln!("Feil: -b krever et tall (f.eks. -b 1 for i går)");
+                eprintln!("Feil: -n krever et tall (f.eks. -n 1 for i går)");
                 std::process::exit(1);
             }).parse().unwrap_or_else(|_| {
-                eprintln!("Feil: -b må etterfølges av et heltall");
+                eprintln!("Feil: -n må etterfølges av et heltall");
                 std::process::exit(1);
             });
 
             list_log_for_day(n_days);
         }
-        Some("-u") | Some("--undo") => remove_last_log_entry(),
+        Some("-u") => remove_last_log_entry(),
+        Some("-e") | Some("--edit") => edit_today_log(),
         Some("-t") | Some("--time") => handle_log_with_optional_time(args),
         Some(other) => {
             let rest = std::iter::once(other.to_string()).chain(args).collect();
             handle_log_with_sentence(rest, None);
         }
         None => {
-            eprintln!("Bruk: logg [-t hh:mm] <setning> | -l | -n <dager> | -u");
+            eprintln!("Bruk: logg [-t hh:mm] <setning> | -l | -n <dager> | -u | -e");
             std::process::exit(1);
         }
     }
@@ -135,6 +137,27 @@ fn remove_last_log_entry() {
 
     write(&file_path, new_content.trim_end().to_string() + "\n").expect("Kunne ikke skrive tilbake til fil");
     println!("Fjernet siste loggoppføring: {}", removed);
+}
+
+fn edit_today_log() {
+    let today = Local::now().date_naive();
+    let file_path = get_log_path_for_date(today);
+    fs::create_dir_all(file_path.parent().unwrap()).expect("Kunne ikke opprette katalogstruktur");
+
+    // Sørg for at filen eksisterer
+    if !file_path.exists() {
+        write(&file_path, "").expect("Kunne ikke opprette tom loggfil");
+    }
+
+    let editor = env::var("EDITOR").unwrap_or_else(|_| "vim".to_string());
+    let status = Command::new(editor)
+        .arg(&file_path)
+        .status()
+        .expect("Kunne ikke starte editor");
+
+    if !status.success() {
+        eprintln!("Editor avsluttet med feil");
+    }
 }
 
 fn get_log_path_for_date(date: NaiveDate) -> PathBuf {
