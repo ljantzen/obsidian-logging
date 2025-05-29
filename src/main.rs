@@ -9,24 +9,25 @@ fn main() {
 
     match first_arg.as_deref() {
         Some("-l") | Some("--list") => list_log_for_day(0),
-        Some("-n") => {
+        Some("-b") | Some("--back") => {
             let n_days: i64 = args.next().unwrap_or_else(|| {
-                eprintln!("Feil: -n krever et tall (f.eks. -n 1 for i går)");
+                eprintln!("Feil: -b krever et tall (f.eks. -b 1 for i går)");
                 std::process::exit(1);
             }).parse().unwrap_or_else(|_| {
-                eprintln!("Feil: -n må etterfølges av et heltall");
+                eprintln!("Feil: -b må etterfølges av et heltall");
                 std::process::exit(1);
             });
 
             list_log_for_day(n_days);
         }
+        Some("-u") | Some("--undo") => remove_last_log_entry(),
         Some("-t") | Some("--time") => handle_log_with_optional_time(args),
         Some(other) => {
             let rest = std::iter::once(other.to_string()).chain(args).collect();
             handle_log_with_sentence(rest, None);
         }
         None => {
-            eprintln!("Bruk: logg [-t hh:mm] <setning> | -l | -n <dager>");
+            eprintln!("Bruk: logg [-t hh:mm] <setning> | -l | -n <dager> | -u");
             std::process::exit(1);
         }
     }
@@ -105,6 +106,35 @@ fn list_log_for_day(days_ago: i64) {
             println!("{}", entry);
         }
     }
+}
+
+fn remove_last_log_entry() {
+    let today = Local::now().date_naive();
+    let file_path = get_log_path_for_date(today);
+    let content = match read_to_string(&file_path) {
+        Ok(c) => c,
+        Err(_) => {
+            println!("Ingen logg funnet for i dag.");
+            return;
+        }
+    };
+
+    let (before, after, mut entries) = extract_log_entries(&content);
+    if entries.is_empty() {
+        println!("Ingen loggoppføringer å fjerne.");
+        return;
+    }
+
+    let removed = entries.pop().unwrap(); // trygt siden vi sjekket at entries ikke er tom
+    let new_content = format!(
+        "{}## 🕗\n\n{}\n{}",
+        before,
+        entries.join("\n"),
+        after
+    );
+
+    write(&file_path, new_content.trim_end().to_string() + "\n").expect("Kunne ikke skrive tilbake til fil");
+    println!("Fjernet siste loggoppføring: {}", removed);
 }
 
 fn get_log_path_for_date(date: NaiveDate) -> PathBuf {
