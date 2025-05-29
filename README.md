@@ -20,3 +20,6 @@ When invoking the command `olog This is a log entry` olog will append the string
 
 The timestamp may be overridden by specifying the -t/--time HH:MM switch.  Log entries are sorted chronologically before being added to the md file. 
 
+You can list the current days log entries by specifying the -l option.  By specifying `-n <number>` you can list the logs `number` of days ago.
+
+`olog -n 0` is the same as `olog -l`
