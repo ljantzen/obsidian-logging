@@ -4,33 +4,37 @@ use std::path::PathBuf;
 use chrono::{Local, NaiveTime, Datelike, Timelike};
 
 fn main() {
-    // Hent setning fra CLI og valgfri --time hh:mm
-    let args: Vec<String> = env::args().skip(1).collect();
-    if args.is_empty() {
-        eprintln!("Bruk: logg [--time hh:mm] <setning>");
-        std::process::exit(1);
-    }
-
+    // Parse args
+    let mut args = env::args().skip(1); // skip binary name
     let mut time_override: Option<NaiveTime> = None;
-    let mut sentence_parts: Vec<String> = Vec::new();
 
-    let mut args_iter = args.into_iter();
-    while let Some(arg) = args_iter.next() {
-        if arg == "--time" || arg == "-t"  {
-            if let Some(time_str) = args_iter.next() {
-                match NaiveTime::parse_from_str(&time_str, "%H:%M") {
-                    Ok(t) => time_override = Some(t),
-                    Err(_) => {
-                        eprintln!("Feil: ugyldig klokkeslett '{}'. Bruk format hh:mm.", time_str);
-                        std::process::exit(1);
-                    }
-                }
-            } else {
-                eprintln!("Feil: -t/--time krever et argument");
+    // Check if first argument is -t or --time
+    let first_arg = args.next();
+    let mut sentence_parts: Vec<String>;
+
+    match first_arg.as_deref() {
+        Some("-t") | Some("--time") => {
+            let time_str = args.next().unwrap_or_else(|| {
+                eprintln!("Feil: -t/--time krever et argument i format hh:mm");
                 std::process::exit(1);
-            }
-        } else {
-            sentence_parts.push(arg);
+            });
+
+            time_override = Some(
+                NaiveTime::parse_from_str(&time_str, "%H:%M").unwrap_or_else(|_| {
+                    eprintln!("Feil: ugyldig klokkeslett '{}'. Bruk format hh:mm.", time_str);
+                    std::process::exit(1);
+                }),
+            );
+
+            sentence_parts = args.collect();
+        }
+        Some(other) => {
+            sentence_parts = vec![other.to_string()];
+            sentence_parts.extend(args);
+        }
+        None => {
+            eprintln!("Bruk: olog [-t hh:mm] <setning>");
+            std::process::exit(1);
         }
     }
 
@@ -79,7 +83,7 @@ fn main() {
         if line.starts_with("* ") {
             log_entries.push(line.to_string());
         } else if line.starts_with("## ") {
-            break; // slutt på loggseksjonen
+            break;
         }
         i += 1;
     }
@@ -89,22 +93,20 @@ fn main() {
     log_entries.push(new_entry);
 
     // Sorter logglinjer etter tid
-    log_entries.sort_by_key(|entry| {
-        entry[2..7].to_string() // hh:mm
-    });
+    log_entries.sort_by_key(|entry| entry[2..7].to_string()); // assumes format "* hh:mm ..."
 
     // Sett sammen ny fil
-    let mut new_lines = lines[..=log_index].to_vec(); // inkludert ## 🕗
-    new_lines.push(""); // tom linje etter overskriften
+    let mut new_lines = lines[..=log_index].to_vec();
+    new_lines.push("");
     new_lines.extend(log_entries.iter().map(|s| s.as_str()));
 
-    // Finn og legg til resterende linjer etter loggseksjonen
+    // Legg til resten av linjene
     while i < lines.len() {
         new_lines.push(lines[i]);
         i += 1;
     }
 
-    // Skriv fil på nytt
+    // Skriv fil
     let final_content = new_lines.join("\n") + "\n";
     write(&file_path, final_content).expect("Kunne ikke skrive tilbake til fil");
 

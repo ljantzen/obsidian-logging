@@ -18,4 +18,5 @@ This header signifies the start of the log of the day.
 
 When invoking the command `olog This is a log entry` olog will append the string `- HH:mm This is a log entry` (where HH:mm) is the current timestamp ) to the markdown diary file. 
 
+The timestamp may be overridden by specifying the -t/--time HH:MM switch.  Log entries are sorted chronologically before being added to the md file. 
 
