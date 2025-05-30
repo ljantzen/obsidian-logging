@@ -10,16 +10,16 @@ fn main() {
 
     match first_arg.as_deref() {
         Some("-l") | Some("--list") => list_log_for_day(0),
-        Some("-n") => {
-            let n_days: i64 = args.next().unwrap_or_else(|| {
-                eprintln!("Feil: -n krever et tall (f.eks. -n 1 for i går)");
+        Some("-b") => {
+            let b_days: i64 = args.next().unwrap_or_else(|| {
+                eprintln!("Feil: -b krever et tall (f.eks. -b 1 for i går)");
                 std::process::exit(1);
             }).parse().unwrap_or_else(|_| {
-                eprintln!("Feil: -n må etterfølges av et heltall");
+                eprintln!("Feil: -b må etterfølges av et heltall");
                 std::process::exit(1);
             });
 
-            list_log_for_day(n_days);
+            list_log_for_day(b_days);
         }
         Some("-u") => remove_last_log_entry(),
         Some("-e") | Some("--edit") => edit_today_log(),
@@ -83,7 +83,7 @@ fn handle_log_with_sentence(sentence_parts: Vec<String>, time_override: Option<N
     );
 
     write(&file_path, new_content.trim_end().to_string() + "\n").expect("Kunne ikke skrive tilbake til fil");
-    println!("Logg lagret");
+    println!("done.");
 }
 
 fn list_log_for_day(days_ago: i64) {
