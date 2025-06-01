@@ -2,19 +2,18 @@
 
 This little utility written in Rust makes it possible for me to log directly to todays daily note from the linux command line. 
 
-My vault has a particular layout supported by Templater templates.   The Dirary template automatically creates the required directory-structure, file, and markdown content. 
+## Environment variable
 
-The directory and filename is calculated based on the date: 
+Olog expects the environment variable $OBSIDIAN_VAULT_DIR to be defined and point to the top level directory of the vault. 
 
-$OBSIDIAN_VAULT/10-Journal/YYYY/MM/YYYY-MM-DD.md
+## Configuration file
 
-The last line of a fresh diary markdown file is a level 2 header: 
+Olog reads ~/.config/olog/olog.toml on startup.  This is a file that uses the TOML configuration format.  See olog.example.toml for what can be configured.
 
-```
-## 🕗
-```
+My vault has a particular layout supported by Templater templates, and the example configuration reflects that.   
 
-This header signifies the start of the log of the day.  
+Olog looks for a marker that signifiies where the log entries block will start. Log entries must be consecutive without empty lines. The marker is specified in the config file.
+In my case it is a level 2 heading with a clock emoji. 
 
 
 ## Command line switches 
