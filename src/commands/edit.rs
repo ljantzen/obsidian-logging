@@ -7,21 +7,21 @@ use crate::utils::get_log_path_for_date;
 pub fn edit_today_log(config: &Config) {
     let today = Local::now().date_naive();
     let file_path = get_log_path_for_date(today, config);
-    create_dir_all(file_path.parent().unwrap()).expect("Kunne ikke opprette katalogstruktur");
+    create_dir_all(file_path.parent().unwrap()).expect("Couldn't create parent directory");
 
-    // Sørg for at filen eksisterer
+    // Make sure the file exists
     if !file_path.exists() {
-        write(&file_path, "").expect("Kunne ikke opprette tom loggfil");
+        write(&file_path, "").expect("Could not create empty log file");
     }
 
     let editor = std::env::var("EDITOR").unwrap_or_else(|_| "vim".to_string());
     let status = Command::new(editor)
         .arg(&file_path)
         .status()
-        .expect("Kunne ikke starte editor");
+        .expect("Failed to start editor");
 
     if !status.success() {
-        eprintln!("Editor avsluttet med feil");
+        eprintln!("Editor exited with non-zero exit code");
     }
 }
 

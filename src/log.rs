@@ -42,6 +42,7 @@ pub fn add_log_entry(date: chrono::NaiveDate, time_str: &str, sentence: &str, co
     let new_content = format!("{}{}\
 \n\n{}\n{}", before, config.layout.section_header, entries.join("\n"), after);
 
+    
     write_log_for_date(date, config, &new_content)
         .map_err(|e| format!("Kunne ikke skrive til fil: {}", e))?;
 

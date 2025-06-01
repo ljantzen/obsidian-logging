@@ -2,12 +2,12 @@ use chrono::{Datelike, NaiveDate};
 use std::path::PathBuf;
 use crate::config::Config;
 
-/// Bygger filbane for gitt dato ut ifra formatstrengen i konfigurasjonen.
-/// Støtter tokens: {year}, {month}, {date}
+/// Build file path for given date and format string from configuration toml
+/// Supported tokens: {year}, {month}, {date}
 pub fn get_log_path_for_date(date: NaiveDate, config: &Config) -> PathBuf {
-    let vault_dir = std::env::var("OBSIDIAN_VAULT").expect("Miljøvariabelen OBSIDIAN_VAULT er ikke satt");
+    let vault_dir = std::env::var("OBSIDIAN_VAULT").expect("Environment variable $OBSIDIAN_VAULT is undefined");
 
-    // Erstatt tokens i filbaneformatet
+    // Replace tokens in file path 
     let mut relative_path = config.layout.file_path_format.clone();
     relative_path = relative_path.replace("{year}", &format!("{:04}", date.year()));
     relative_path = relative_path.replace("{month}", &format!("{:02}", date.month()));
@@ -18,9 +18,9 @@ pub fn get_log_path_for_date(date: NaiveDate, config: &Config) -> PathBuf {
     full_path
 }
 
-/// Ekstraherer logginnslag fra loggseksjonen i filinnholdet.
-/// Returnerer (innhold før seksjon, innhold etter seksjon, vektor med logginnslag).
-/// Seksjonsoverskrift hentes fra konfigurasjonen.
+/// Extract log entries from the log section 
+/// Returns ( content before log section, content after log section and list of log entries)
+/// Section heading retrieved from toml config 
 pub fn extract_log_entries(content: &str, section_header: &str) -> (String, String, Vec<String>) {
     let lines: Vec<&str> = content.lines().collect();
     if let Some(start) = lines.iter().position(|line| line.trim() == section_header) {

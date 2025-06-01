@@ -5,18 +5,18 @@ use crate::utils::{get_log_path_for_date, extract_log_entries};
 
 pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config) {
     let time_str = args.next().unwrap_or_else(|| {
-        eprintln!("Feil: -t/--time krever et argument i format hh:mm");
+        eprintln!("Error: -t/--time needs a timestamp with the format HH:mm");
         std::process::exit(1);
     });
 
     let time_override = Some(NaiveTime::parse_from_str(&time_str, "%H:%M").unwrap_or_else(|_| {
-        eprintln!("Feil: ugyldig klokkeslett '{}'. Bruk format hh:mm.", time_str);
+        eprintln!("Error: invalid timestamp '{}'. Use the format HH:mm.", time_str);
         std::process::exit(1);
     }));
 
     let sentence_parts: Vec<String> = args.collect();
     if sentence_parts.is_empty() {
-        eprintln!("Feil: Du må oppgi en setning.");
+        eprintln!("Error: No log statement provided.");
         std::process::exit(1);
     }
 
@@ -37,7 +37,7 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
     let time_str = format!("{:02}:{:02}", time.hour(), time.minute());
 
     let file_path = get_log_path_for_date(date, config);
-    create_dir_all(file_path.parent().unwrap()).expect("Kunne ikke opprette katalogstruktur");
+    create_dir_all(file_path.parent().unwrap()).expect("Could not create log directory");
 
     let mut content = read_to_string(&file_path).unwrap_or_default();
 
@@ -50,7 +50,7 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
     let new_entry = format!("* {} {}", time_str, sentence);
     entries.push(new_entry);
 
-    // Sorter kronologisk basert på klokkeslettet i hver linje
+    // Sort log statements chronologically
     entries.sort_by_key(|entry| entry[2..7].to_string());
 
     let new_content = format!(
@@ -66,8 +66,8 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
         }
     );
 
-    write(&file_path, new_content.trim_end().to_string() + "\n").expect("Kunne ikke skrive tilbake til fil");
+    write(&file_path, new_content.trim_end().to_string() + "\n").expect("Error writing logs to file");
 
-    println!("Logg lagt til.");
+    println!("Logged.");
 }
 

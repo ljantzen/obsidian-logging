@@ -9,18 +9,18 @@ pub fn remove_last_log_entry(config: &Config) {
     let content = match read_to_string(&file_path) {
         Ok(c) => c,
         Err(_) => {
-            println!("Ingen logg funnet for i dag.");
+            println!("No log file found for today.");
             return;
         }
     };
 
     let (before, after, mut entries) = extract_log_entries(&content, &config.layout.section_header);
     if entries.is_empty() {
-        println!("Ingen loggoppføringer å fjerne.");
+        println!("Nothing to remove.");
         return;
     }
 
-    let removed = entries.pop().unwrap(); // trygt siden vi sjekket at entries ikke er tom
+    let removed = entries.pop().unwrap(); // Safe since we checked that the list isnt empty
     let new_content = format!(
         "{}{}\n\n{}\n{}",
         before,
@@ -29,7 +29,7 @@ pub fn remove_last_log_entry(config: &Config) {
         after
     );
 
-    write(&file_path, new_content.trim_end().to_string() + "\n").expect("Kunne ikke skrive tilbake til fil");
-    println!("Fjernet siste loggoppføring: {}", removed);
+    write(&file_path, new_content.trim_end().to_string() + "\n").expect("Could not write log entries back to file");
+    println!("Removed the last log entry: {}", removed);
 }
 

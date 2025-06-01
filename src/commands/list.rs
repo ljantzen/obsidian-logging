@@ -10,26 +10,14 @@ pub fn list_log_for_day(days_ago: i64, config: &Config) {
 
 pub fn list_relative_day(args: &mut impl Iterator<Item = String>, config: &Config) {
     let b_days: i64 = args.next().unwrap_or_else(|| {
-        eprintln!("Feil: -b krever et tall (f.eks. -b 1 for i går)");
+        eprintln!("Error: -b needs a numeric argument (eg -b 1 for yesterday)");
         std::process::exit(1);
     }).parse().unwrap_or_else(|_| {
-        eprintln!("Feil: -b må etterfølges av et heltall");
+        eprintln!("Error: -b must be numeric argument (eg -b 1 for yesterday)");
         std::process::exit(1);
     });
 
     list_log_for_day(b_days, config);
-}
-
-pub fn list_n_days_ago(args: &mut impl Iterator<Item = String>, config: &Config) {
-    let n: i64 = args.next().unwrap_or_else(|| {
-        eprintln!("Feil: -n krever et tall");
-        std::process::exit(1);
-    }).parse().unwrap_or_else(|_| {
-        eprintln!("Feil: -n må være et heltall");
-        std::process::exit(1);
-    });
-
-    list_log_for_day(n, config);
 }
 
 fn list_log_for_date(date: NaiveDate, config: &Config) {
@@ -39,16 +27,16 @@ fn list_log_for_date(date: NaiveDate, config: &Config) {
     let content = match read_to_string(&file_path) {
         Ok(c) => c,
         Err(_) => {
-            println!("Ingen logg funnet for {}", date_str);
+            println!("No log/s found for {}", date_str);
             return;
         }
     };
 
     let (_, _, entries) = extract_log_entries(&content, &config.layout.section_header);
     if entries.is_empty() {
-        println!("Ingen loggseksjon ({} ) funnet for {}", config.layout.section_header, date_str);
+        println!("No log-ssection ({} ) found for {}", config.layout.section_header, date_str);
     } else {
-        println!("{} Logg for {}:", config.layout.section_header, date_str);
+        println!("{} Log/s for {}:", config.layout.section_header, date_str);
         for entry in entries {
             println!("{}", entry);
         }
