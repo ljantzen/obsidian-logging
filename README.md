@@ -29,7 +29,7 @@ The timestamp may be overridden by specifying the -t/--time HH:mm switch.  Log e
 
 ### -l  or --list 
 
-You can list the current days log entries by specifying the -l option. 
+You can list the current days log entries by specifying the -l option.  If olog is invoked without any arguments, this is the default action.
 
 ### -b <days> or --back <days>
 
@@ -42,3 +42,7 @@ Removes the last log entry (undo)
 ### -e or --edit
 
 Invokes $EDITOR with todays file.  Uses vim if $EDITOR is not set,
+
+### -h or --help 
+
+Print command line argument help

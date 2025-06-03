@@ -18,10 +18,13 @@ fn main() {
         Some("-u") => remove::remove_last_log_entry(&config),
         Some("-e") | Some("--edit") => edit::edit_today_log(&config),
         Some("-t") | Some("--time") => add::handle_with_time(args, &config),
-        Some(other) => add::handle_plain_entry(other.to_string(), args, &config),
-        None => {
+        Some("-h") | Some("--help") => {
             eprintln!("olog [-t hh:mm] <sentence> | -l | -b <days> | -u | -e");
             std::process::exit(1);
+        }
+        Some(other) => add::handle_plain_entry(other.to_string(), args, &config),
+        None => {
+            list::list_log_for_day(0,&config);
         }
     }
 }
