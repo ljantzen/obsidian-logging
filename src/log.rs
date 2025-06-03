@@ -26,13 +26,13 @@ pub fn write_log_for_date(date: chrono::NaiveDate, config: &Config, content: &st
 pub fn add_log_entry(date: chrono::NaiveDate, time_str: &str, sentence: &str, config: &Config) -> Result<(), String> {
     let mut content = read_log_for_date(date, config).unwrap_or_default();
 
-    if !content.contains(&config.layout.section_header) {
+    if !content.contains(&config.section_header) {
         content.push_str("\n");
-        content.push_str(&config.layout.section_header);
+        content.push_str(&config.section_header);
         content.push_str("\n\n");
     }
 
-    let (before, after, mut entries) = extract_log_entries(&content, &config.layout.section_header);
+    let (before, after, mut entries) = extract_log_entries(&content, &config.section_header);
     let new_entry = format!("* {} {}", time_str, sentence);
     entries.push(new_entry);
 
@@ -40,7 +40,7 @@ pub fn add_log_entry(date: chrono::NaiveDate, time_str: &str, sentence: &str, co
     entries.sort_by_key(|entry| entry[2..7].to_string());
 
     let new_content = format!("{}{}\
-\n\n{}\n{}", before, config.layout.section_header, entries.join("\n"), after);
+\n\n{}\n{}", before, config.section_header, entries.join("\n"), after);
 
     
     write_log_for_date(date, config, &new_content)

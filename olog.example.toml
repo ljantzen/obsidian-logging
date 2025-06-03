@@ -1,11 +1,8 @@
 # copy to ~/.config/olog and customize as you please 
 
-[vault]
-path = "/home/username/Obsidian"
-
-[layout]
-journal_folder = "10-Journal"
-section_header = "## 🕗"
-file_format = "{year}-{month}-{day}.md"
-folder_format = "{year}/{month}"
+path : "/home/username/Obsidian"
+journal_folder : "10-Journal"
+section_header : "## 🕗"
+file_format : "{year}-{month}-{day}.md"
+folder_format : "{year}/{month}"
 

@@ -8,7 +8,7 @@ Olog expects the environment variable $OBSIDIAN_VAULT_DIR to be defined and poin
 
 ## Configuration file
 
-Olog reads ~/.config/olog/olog.toml on startup.  This is a file that uses the TOML configuration format.  See olog.example.toml for what can be configured.
+Olog reads ~/.config/olog/olog.yaml on startup.  This is a file that uses the yaml configuration format.  See olog.example.yaml for what can be configured.
 
 My vault has a particular layout supported by Templater templates, and the example configuration reflects that.   
 

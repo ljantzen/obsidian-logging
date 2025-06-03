@@ -41,11 +41,11 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
 
     let mut content = read_to_string(&file_path).unwrap_or_default();
 
-    if !content.contains(&config.layout.section_header) {
-        content.push_str(&format!("\n{}\n\n", &config.layout.section_header));
+    if !content.contains(&config.section_header) {
+        content.push_str(&format!("\n{}\n\n", &config.section_header));
     }
 
-    let (before_log, after_log, mut entries) = extract_log_entries(&content, &config.layout.section_header);
+    let (before_log, after_log, mut entries) = extract_log_entries(&content, &config.section_header);
 
     let new_entry = format!("* {} {}", time_str, sentence);
     entries.push(new_entry);
@@ -56,7 +56,7 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
     let new_content = format!(
         "{}{}{}\n\n{}{}",
         before_log,
-        &config.layout.section_header,
+        &config.section_header,
         "\n\n",
         entries.join("\n"),
         if after_log.is_empty() {

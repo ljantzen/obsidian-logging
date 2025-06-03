@@ -32,11 +32,11 @@ fn list_log_for_date(date: NaiveDate, config: &Config) {
         }
     };
 
-    let (_, _, entries) = extract_log_entries(&content, &config.layout.section_header);
+    let (_, _, entries) = extract_log_entries(&content, &config.section_header);
     if entries.is_empty() {
-        println!("No log-ssection ({} ) found for {}", config.layout.section_header, date_str);
+        println!("No log-section ({} ) found for {}", config.section_header, date_str);
     } else {
-        println!("{} Log/s for {}:", config.layout.section_header, date_str);
+        println!("{} Log/s for {}:", config.section_header, date_str);
         for entry in entries {
             println!("{}", entry);
         }
