@@ -2,6 +2,11 @@
 name = "olog"
 version = "1.0.2"
 edition = "2024"
+description = "A journaling/logging CLI that stores logs in Obsidian markdown files"
+license = "MIT"  
+repository = "https://github.com/ljantzen/olog"
+homepage = "https://github.com/ljantzen/olog"
+documentation = ""
 
 [dependencies]
 chrono = { version = "0.4", features = ["unstable-locales"] }
