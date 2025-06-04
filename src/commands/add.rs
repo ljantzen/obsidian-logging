@@ -2,6 +2,7 @@ use chrono::{Local, Timelike, NaiveTime};
 use std::fs::{create_dir_all, read_to_string, write};
 use crate::config::{Config, ListType};
 use crate::utils::{get_log_path_for_date, extract_log_entries};
+use crate::template::get_template_content;
 
 /// Format a table row with given widths for timestamp and entry columns
 fn format_table_row(timestamp: &str, entry: &str, time_width: usize, entry_width: usize) -> String {
@@ -15,6 +16,11 @@ fn format_table_separator(time_width: usize, entry_width: usize) -> String {
 
 /// Parse a table row into (timestamp, entry)
 fn parse_table_row(line: &str) -> Option<(String, String)> {
+    // Skip header and separator rows
+    if line.contains("Tidspunkt | Hendelse") || line.trim().chars().all(|c| c == '|' || c == '-') {
+        return None;
+    }
+    
     let parts: Vec<&str> = line.split('|').collect();
     if parts.len() >= 3 {
         Some((parts[1].trim().to_string(), parts[2].trim().to_string()))
@@ -71,16 +77,24 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
     let file_path = get_log_path_for_date(date, config);
     create_dir_all(file_path.parent().unwrap()).expect("Could not create log directory");
 
-    let mut content = read_to_string(&file_path).unwrap_or_default();
-
-    if !content.contains(&config.section_header) {
-        content.push_str(&format!("\n{}\n\n", &config.section_header));
-    }
+    let is_new_file = !file_path.exists();
+    let content = if is_new_file {
+        get_template_content(config)
+    } else {
+        read_to_string(&file_path).unwrap_or_default()
+    };
 
     let (before_log, after_log, entries, detected_type) = extract_log_entries(&content, &config.section_header, &config.list_type);
 
-    // Use detected type unless it's a new file (empty entries)
-    let effective_type = if entries.is_empty() { config.list_type.clone() } else { detected_type };
+    // For new files, always use the config list type
+    // For existing files, use detected type unless there are no entries
+    let effective_type = if is_new_file {
+        config.list_type.clone()
+    } else if entries.is_empty() {
+        config.list_type.clone()
+    } else {
+        detected_type
+    };
 
     // Parse all entries into (timestamp, entry) pairs
     let mut parsed_entries: Vec<(String, String)> = entries.iter()
@@ -120,8 +134,11 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
 
             // Format table
             let mut table = Vec::new();
-            table.push(format_table_row("Tidspunkt", "Hendelse", max_time_width, max_entry_width));
-            table.push(format_table_separator(max_time_width, max_entry_width));
+            // Always show header for table format in new files or when explicitly set
+            if is_new_file || effective_type == ListType::Table {
+                table.push(format_table_row("Tidspunkt", "Hendelse", max_time_width, max_entry_width));
+                table.push(format_table_separator(max_time_width, max_entry_width));
+            }
             table.extend(parsed_entries.into_iter().map(|(time, entry)| {
                 format_table_row(&time, &entry, max_time_width, max_entry_width)
             }));

@@ -54,16 +54,39 @@ pub struct Config {
     pub file_path_format: String,
     pub section_header: String,
     pub list_type: ListType,
+    pub template_path: Option<String>,
+    pub locale: Option<String>,
 }
 
 impl Default for Config {
     fn default() -> Self {
         let vault_dir = env::var("OBSIDIAN_VAULT").unwrap_or_else(|_| "".to_string());
+        let home_dir = env::var("HOME").expect("HOME environment variable not set");
+        
+        // Create the config directory if it doesn't exist
+        let config_dir = PathBuf::from(&home_dir).join(".config/olog");
+        if !config_dir.exists() {
+            if let Err(e) = fs::create_dir_all(&config_dir) {
+                eprintln!("Warning: Could not create config directory: {}", e);
+            }
+        }
+
+        // Create default template file if it doesn't exist
+        let template_path = config_dir.join("template.md");
+        if !template_path.exists() {
+            let default_template = "[[{yesterday}]] [[{tomorrow}]]\n\n## 📅️ {today} {weekday}\n\n## 🎯\n\n## 👀️\n\n## 🕗\n";
+            if let Err(e) = fs::write(&template_path, default_template) {
+                eprintln!("Warning: Could not create default template file: {}", e);
+            }
+        }
+
         Config {
             vault: vault_dir,
             file_path_format: "10-Journal/{year}/{month}/{date}.md".to_string(),
             section_header: "## 🕗".to_string(),
-            list_type : ListType::Bullet
+            list_type: ListType::Bullet,
+            template_path: Some(template_path.to_string_lossy().into_owned()),
+            locale: None,
         }
     }
 }

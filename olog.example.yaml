@@ -2,3 +2,12 @@ vault: /home/user/obsidian/
 file_path_format: 10-Journal/{year}/{month}/{date}.md
 section_header: "## 🕗"
 list_type: bullet
+template_path: ~/.config/olog/template.md
+# Optional: Specify locale for weekday names
+# Examples:
+#   locale: en_US    # English
+#   locale: nb_NO    # Norwegian Bokmål
+#   locale: de_DE    # German
+#   locale: fr_FR    # French
+#   locale: es_ES    # Spanish
+# If not specified or invalid, falls back to English

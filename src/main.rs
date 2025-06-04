@@ -1,6 +1,7 @@
 mod config;
 mod utils;
 mod commands;
+mod template;
 
 use crate::commands::{list, edit, remove, add};
 use std::env;
