@@ -8,6 +8,7 @@ pub struct TemplateData {
     pub yesterday_date: String,
     pub tomorrow_date: String,
     pub weekday: String,
+    pub created: String,
 }
 
 impl TemplateData {
@@ -66,6 +67,7 @@ impl TemplateData {
             yesterday_date: yesterday.format("%Y-%m-%d").to_string(),
             tomorrow_date: tomorrow.format("%Y-%m-%d").to_string(),
             weekday,
+            created: now.format("%Y-%m-%d %H:%M").to_string(),
         }
     }
 
@@ -106,6 +108,7 @@ pub fn process_template(template_path: &str, data: &TemplateData) -> String {
         .replace("{yesterday}", &data.yesterday_date)
         .replace("{tomorrow}", &data.tomorrow_date)
         .replace("{weekday}", &data.weekday)
+        .replace("{created}", &data.created)
 }
 
 pub fn get_template_content(config: &Config) -> String {
