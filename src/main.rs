@@ -9,14 +9,31 @@ use std::str::FromStr;
 use config::{load_config, ListType};
 
 fn print_help() {
-    eprintln!("olog [-t hh:mm] <sentence> | -l | -b <days> | -u | -e | -T <list-type>");
+    eprintln!("olog [options] [log entry]");
+    eprintln!("\nUsage:");
+    eprintln!("  olog                     List today's entries");
+    eprintln!("  olog <log entry>         Add a new log entry");
     eprintln!("\nOptions:");
-    eprintln!("  -t, --time hh:mm    Override timestamp for the entry");
-    eprintln!("  -l, --list          List today's entries");
-    eprintln!("  -b <days>           List entries from <days> days ago");
-    eprintln!("  -u, --undo          Remove the last entry");
-    eprintln!("  -e, --edit          Edit today's file");
-    eprintln!("  -T <list-type>      Override list type (bullet or table)");
+    eprintln!("  -t, --time hh:mm         Override timestamp for the entry");
+    eprintln!("  -l, --list               List today's entries");
+    eprintln!("  -b <days>                List entries from <days> days ago");
+    eprintln!("  -u, --undo               Remove the last entry");
+    eprintln!("  -e, --edit               Edit today's file");
+    eprintln!("  -T <list-type>           Override list type (bullet or table)");
+    eprintln!("  -h, --help               Show this help message");
+    eprintln!("\nConfiguration (~/.config/olog/olog.yaml):");
+    eprintln!("  vault:            Path to Obsidian vault, overrides $OBSIDIAN_VAULT_DIR");
+    eprintln!("  file_path_format: Format for daily note directory path");
+    eprintln!("  section_header:   Marker for log entries section");
+    eprintln!("  list_type:        Default list format (bullet or table)");
+    eprintln!("  template_path:    Path to template file");
+    eprintln!("  locale:           Locale for weekday names (e.g., en_US, nb_NO)");
+    eprintln!("\nTemplate Variables:");
+    eprintln!("  {{today}}          Current date (YYYY-MM-DD)");
+    eprintln!("  {{yesterday}}      Yesterday's date");
+    eprintln!("  {{tomorrow}}       Tomorrow's date");
+    eprintln!("  {{weekday}}        Localized weekday name");
+    eprintln!("  {{created}}        Creation timestamp (YYYY-MM-DD HH:mm)");
     std::process::exit(1);
 }
 
