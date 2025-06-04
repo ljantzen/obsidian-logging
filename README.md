@@ -47,6 +47,10 @@ Invokes $EDITOR with todays file.  Uses vim if $EDITOR is not set,
 
 Print command line argument help
 
+### -T list mode 
+
+Specifies the list output mode when olog -l is called. Valid arguments are -T bullet and -T table. Overrides the list mode in olog.yaml configuration file
+
 
 
 ## Screenshots
@@ -58,3 +62,9 @@ Print command line argument help
 ### Table mode 
 
 ![image](https://github.com/user-attachments/assets/ad3fe2c4-9a33-4272-a059-3d22617cef97)
+
+
+# Contact info 
+
+https://mas.to/@jantzten
+https://bsky.app/profile/leif.jantzen.no
