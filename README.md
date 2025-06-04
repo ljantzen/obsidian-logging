@@ -46,3 +46,15 @@ Invokes $EDITOR with todays file.  Uses vim if $EDITOR is not set,
 ### -h or --help 
 
 Print command line argument help
+
+
+
+## Screenshots
+
+### Bullet mode 
+
+![image](https://github.com/user-attachments/assets/72c50c59-5185-4cb4-a871-473a8fd8b96f)
+
+### Table mode 
+
+![image](https://github.com/user-attachments/assets/ad3fe2c4-9a33-4272-a059-3d22617cef97)
