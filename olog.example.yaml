@@ -1,0 +1,4 @@
+vault: /home/user/obsidian/
+file_path_format: 10-Journal/{year}/{month}/{date}.md
+section_header: "## 🕗"
+list_type: bullet

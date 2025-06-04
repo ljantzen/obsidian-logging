@@ -14,7 +14,7 @@ pub fn remove_last_log_entry(config: &Config) {
         }
     };
 
-    let (before, after, mut entries) = extract_log_entries(&content, &config.section_header);
+    let (before, after, mut entries,_) = extract_log_entries(&content, &config.section_header,&config.list_type);
     if entries.is_empty() {
         println!("Nothing to remove.");
         return;

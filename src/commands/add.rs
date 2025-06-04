@@ -1,7 +1,39 @@
 use chrono::{Local, Timelike, NaiveTime};
 use std::fs::{create_dir_all, read_to_string, write};
-use crate::config::Config;
+use crate::config::{Config, ListType};
 use crate::utils::{get_log_path_for_date, extract_log_entries};
+
+/// Format a table row with given widths for timestamp and entry columns
+fn format_table_row(timestamp: &str, entry: &str, time_width: usize, entry_width: usize) -> String {
+    format!("| {:<width$} | {:<width2$} |", timestamp, entry, width=time_width, width2=entry_width)
+}
+
+/// Format a table separator line with given column widths
+fn format_table_separator(time_width: usize, entry_width: usize) -> String {
+    format!("|-{:-<width$}-|-{:-<width2$}-|", "", "", width=time_width, width2=entry_width)
+}
+
+/// Parse a table row into (timestamp, entry)
+fn parse_table_row(line: &str) -> Option<(String, String)> {
+    let parts: Vec<&str> = line.split('|').collect();
+    if parts.len() >= 3 {
+        Some((parts[1].trim().to_string(), parts[2].trim().to_string()))
+    } else {
+        None
+    }
+}
+
+/// Parse a bullet entry into (timestamp, entry)
+fn parse_bullet_entry(line: &str) -> Option<(String, String)> {
+    let content = line.trim_start_matches(|c| c == '-' || c == '*' || c == ' ');
+    if let Some(space_pos) = content.find(' ') {
+        let (time, rest) = content.split_at(space_pos);
+        if time.len() == 5 && time.chars().nth(2) == Some(':') {
+            return Some((time.to_string(), rest.trim().to_string()));
+        }
+    }
+    None
+}
 
 pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config) {
     let time_str = args.next().unwrap_or_else(|| {
@@ -45,20 +77,63 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
         content.push_str(&format!("\n{}\n\n", &config.section_header));
     }
 
-    let (before_log, after_log, mut entries) = extract_log_entries(&content, &config.section_header);
+    let (before_log, after_log, entries, detected_type) = extract_log_entries(&content, &config.section_header, &config.list_type);
 
-    let new_entry = format!("* {} {}", time_str, sentence);
-    entries.push(new_entry);
+    // Use detected type unless it's a new file (empty entries)
+    let effective_type = if entries.is_empty() { config.list_type.clone() } else { detected_type };
 
-    // Sort log statements chronologically
-    entries.sort_by_key(|entry| entry[2..7].to_string());
+    // Parse all entries into (timestamp, entry) pairs
+    let mut parsed_entries: Vec<(String, String)> = entries.iter()
+        .filter_map(|e| {
+            if e.starts_with("| ") {
+                parse_table_row(e)
+            } else if e.starts_with("- ") || e.starts_with("* ") {
+                parse_bullet_entry(e)
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // Add the new entry
+    parsed_entries.push((time_str, sentence));
+
+    // Sort entries by timestamp
+    parsed_entries.sort_by(|a, b| a.0.cmp(&b.0));
+
+    // Format entries according to effective type
+    let formatted_entries = match effective_type {
+        ListType::Bullet => {
+            parsed_entries.into_iter()
+                .map(|(time, entry)| format!("* {} {}", time, entry))
+                .collect()
+        }
+        ListType::Table => {
+            // Calculate maximum widths
+            let mut max_time_width = "Tidspunkt".len();
+            let mut max_entry_width = "Hendelse".len();
+
+            for (time, entry) in &parsed_entries {
+                max_time_width = max_time_width.max(time.len());
+                max_entry_width = max_entry_width.max(entry.len());
+            }
+
+            // Format table
+            let mut table = Vec::new();
+            table.push(format_table_row("Tidspunkt", "Hendelse", max_time_width, max_entry_width));
+            table.push(format_table_separator(max_time_width, max_entry_width));
+            table.extend(parsed_entries.into_iter().map(|(time, entry)| {
+                format_table_row(&time, &entry, max_time_width, max_entry_width)
+            }));
+            table
+        }
+    };
 
     let new_content = format!(
-        "{}{}{}\n\n{}{}",
+        "{}{}\n\n{}\n{}",
         before_log,
         &config.section_header,
-        "\n\n",
-        entries.join("\n"),
+        formatted_entries.join("\n"),
         if after_log.is_empty() {
             String::new()
         } else {
