@@ -1,0 +1,7 @@
+sign-commit = false         # Only needed if you're using GPG
+sign-tag = false            # Only needed if you're signing tags
+push = true                 # Push commit and tag to GitHub
+publish = false             # 🔥 Prevent publishing to crates.io
+consolidate-commits = true
+tag-prefix = "v"            # So the tag is `v1.0.2`, not `1.0.2`
+

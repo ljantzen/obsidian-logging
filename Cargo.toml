@@ -1,6 +1,6 @@
 [package]
 name = "olog"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2024"
 description = "A journaling/logging CLI that stores logs in Obsidian markdown files"
 license = "MIT"  
