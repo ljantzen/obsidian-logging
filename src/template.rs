@@ -12,8 +12,7 @@ pub struct TemplateData {
 
 impl TemplateData {
     fn map_locale(locale_str: &str) -> Option<Locale> {
-        eprintln!("Debug: Mapping locale string '{}'", locale_str);
-        let result = match locale_str {
+        match locale_str {
             "en_US" => Some(Locale::en_US),
             "nb_NO" => Some(Locale::nb_NO),  // Norwegian Bokmål
             "nn_NO" => Some(Locale::nn_NO),  // Norwegian Nynorsk
@@ -26,16 +25,10 @@ impl TemplateData {
             "ru_RU" => Some(Locale::ru_RU),  // Russian
             "zh_CN" => Some(Locale::zh_CN),  // Chinese
             _ => Some(Locale::nb_NO),
-        };
-        match &result {
-            Some(_) => eprintln!("Debug: Successfully mapped to chrono Locale"),
-            None => eprintln!("Debug: No matching chrono Locale found"),
         }
-        result
     }
 
     fn get_weekday_name(weekday: Weekday, locale: Locale) -> String {
-        eprintln!("Debug: Getting weekday name for {:?} with locale", weekday);
         // Create a known date for this weekday (using 2024-01-01 as Monday)
         let base_monday = chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap();
         let days_to_add = match weekday {
@@ -48,15 +41,10 @@ impl TemplateData {
             Weekday::Sun => 6,
         };
         let target_date = base_monday + Duration::days(days_to_add);
-        eprintln!("Debug: Using reference date {:?} for weekday formatting", target_date);
-        
-        let formatted = target_date.format_localized("%A", locale).to_string().to_lowercase();
-        eprintln!("Debug: Formatted weekday name: {}", formatted);
-        formatted
+        target_date.format_localized("%A", locale).to_string().to_lowercase()
     }
 
     pub fn new(locale_str: Option<&str>) -> Self {
-        eprintln!("Debug: Creating TemplateData with locale: {:?}", locale_str);
         let now = Local::now();
         let today = now.date_naive();
         let yesterday = today - Duration::days(1);
@@ -66,22 +54,11 @@ impl TemplateData {
         let weekday = match locale_str {
             Some(loc) => {
                 match Self::map_locale(loc) {
-                    Some(locale) => {
-                        eprintln!("Debug: Using locale for weekday formatting");
-                        Self::get_weekday_name(today.weekday(), locale)
-                    },
-                    None => {
-                        eprintln!("Warning: Unsupported locale '{}', falling back to English", loc);
-                        let result = Self::weekday_to_string(today.weekday());
-                        eprintln!("Debug: Using fallback English weekday: {}", result);
-                        result
-                    }
+                    Some(locale) => Self::get_weekday_name(today.weekday(), locale),
+                    None => Self::weekday_to_string(today.weekday())
                 }
             },
-            None => {
-                eprintln!("Debug: No locale specified, using English weekday names");
-                Self::weekday_to_string(today.weekday())
-            },
+            None => Self::weekday_to_string(today.weekday()),
         };
 
         Self {
@@ -107,7 +84,6 @@ impl TemplateData {
 }
 
 pub fn process_template(template_path: &str, data: &TemplateData) -> String {
-    eprintln!("Debug: Processing template with weekday: {}", data.weekday);
     // Expand ~ to home directory if present
     let expanded_path = if template_path.starts_with("~") {
         if let Ok(home) = std::env::var("HOME") {
@@ -122,10 +98,7 @@ pub fn process_template(template_path: &str, data: &TemplateData) -> String {
 
     let template = match fs::read_to_string(&expanded_path) {
         Ok(content) => content,
-        Err(e) => {
-            eprintln!("Warning: Could not read template file '{}': {}", template_path, e);
-            String::from("## 🕗\n\n")
-        }
+        Err(_) => String::from("## 🕗\n\n"),
     };
 
     template
@@ -136,7 +109,6 @@ pub fn process_template(template_path: &str, data: &TemplateData) -> String {
 }
 
 pub fn get_template_content(config: &Config) -> String {
-    eprintln!("Debug: Getting template content with locale: {:?}", config.locale);
     let template_data = TemplateData::new(config.locale.as_deref());
     
     match &config.template_path {
