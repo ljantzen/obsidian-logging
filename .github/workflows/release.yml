@@ -1,26 +1,24 @@
-# .github/workflows/release.yml
 name: Release
 
 on:
-  release:
-    types: [created]
+  push:
+    tags:
+      - 'v*'  # Trigger on version tag push like v1.0.0
 
 jobs:
-  build:
-    name: Build and Upload Binaries
+  release:
+    name: Build and Release Binaries
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
-      - name: Checkout code
+      - name: Checkout source
         uses: actions/checkout@v4
 
       - name: Set up Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          rust-version: stable
 
       - name: Build binary
         run: cargo build --release
@@ -28,16 +26,22 @@ jobs:
       - name: Rename and move binary
         run: |
           mkdir dist
-          if [[ "${{ runner.os }}" == "Windows" ]]; then
-            cp target/release/olog.exe dist/olog-${{ runner.os }}.exe
+          BIN_NAME="olog"  # Replace with your actual crate name
+          OS_NAME=${{ runner.os }}
+
+          if [[ "$OS_NAME" == "Windows" ]]; then
+            cp target/release/${BIN_NAME}.exe dist/${BIN_NAME}-${OS_NAME}.exe
           else
-            cp target/release/olog dist/olog-${{ runner.os }}
+            cp target/release/${BIN_NAME} dist/${BIN_NAME}-${OS_NAME}
           fi
         shell: bash
 
-      - name: Upload release asset
+      - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
+          name: ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
           files: dist/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
