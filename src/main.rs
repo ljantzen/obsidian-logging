@@ -21,6 +21,7 @@ fn print_help() {
     eprintln!("  -e, --edit               Edit today's file");
     eprintln!("  -T <list-type>           Override list type (bullet or table)");
     eprintln!("  -h, --help               Show this help message");
+    eprintln!("  -v, --version            Show version information");
     eprintln!("\nConfiguration (~/.config/olog/olog.yaml):");
     eprintln!("  vault:            Path to Obsidian vault, overrides $OBSIDIAN_VAULT_DIR");
     eprintln!("  file_path_format: Format for daily note directory path");
@@ -80,6 +81,10 @@ fn main() {
             "-e" | "--edit" => edit::edit_today_log(&config),
             "-t" | "--time" => add::handle_with_time(remaining_args, &config),
             "-h" | "--help" => print_help(),
+            "-v" | "--version" => {
+                println!("olog version {}", env!("CARGO_PKG_VERSION"));
+                std::process::exit(0);
+            },
             other => add::handle_plain_entry(other.to_string(), remaining_args, &config),
         },
         None => {

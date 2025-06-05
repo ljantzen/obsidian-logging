@@ -51,6 +51,10 @@ Print command line argument help
 
 Specifies the list output mode when olog -l is called. Valid arguments are -T bullet and -T table. Overrides the list mode in olog.yaml configuration file
 
+### -v or --version 
+
+Outputs the current version string and exits execution
+
 
 
 ## Screenshots
