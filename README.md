@@ -1,59 +1,74 @@
-# Olog - Log to Obsidian Journal from command line 
+# Obsidian logging - Log to Obsidian Journal from command line 
 
-[![Crates.io](https://img.shields.io/crates/v/olog.svg)](https://crates.io/crates/olog)
-[![Documentation](https://docs.rs/olog/badge.svg)](https://docs.rs/olog)
+[![Crates.io](https://img.shields.io/crates/v/obsidian-logging.svg)](https://crates.io/crates/obsidian-logging)
+[![Documentation](https://docs.rs/obsidian-logging/badge.svg)](https://docs.rs/obsidian-logging)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 This little utility written in Rust makes it possible to log directly to todays daily note from the linux command line. 
 
 ## Installation
 
-You can install olog using cargo:
+You can install obsidian-logging using cargo:
 
 ```bash
-cargo install olog
+cargo install obsidian-logging
 ```
 
 Or build from source:
 
 ```bash
-git clone https://github.com/ljantzen/olog
-cd olog
+git clone https://github.com/ljantzen/obsidian-logging
+cd obsidian-logging
 cargo build --release
 ```
 
-The binary will be available at `target/release/olog`.
+The binary will be available at `target/release/obsidian-logging`.
+
+
+## Tip
+
+Since obsidian-logging is quite a mouthful to type every time, it is recommended to create a short alias.  E.g
+
+```
+alias q=`obsidian-logging`
+```
+
+On Windows, the `doskey` command can be used to create a macro: 
+
+```
+doskey q=obsidian-logging
+```
 
 ## Environment variable
 
-Olog expects the environment variable $OBSIDIAN_VAULT_DIR to be defined and point to the top level directory of the vault. 
+Obsidian-logging expects the environment variable $OBSIDIAN_VAULT_DIR to be defined and point to the top level directory of the vault. 
 
 ## Configuration file
 
-Olog reads ~/.config/olog/olog.yaml on startup.  If it does not exist, olog will create it and prompt for some of the values. 
-This is a file that uses the yaml configuration format.  See olog.example.yaml for what can be configured. 
+Obsidian-logging reads ~/.config/obsidian-logging/obsidian-logging.yaml on startup.  If it does not exist, obsidian-logging will create it and prompt for some of the values. 
+This is a file that uses the yaml configuration format.  See obsidian-logging.example.yaml for what can be configured. 
 
-Olog looks for a marker that signifiies where the log entries block will start. Log entries must be consecutive without empty lines. The marker is specified in the config file. 
+Obsidian-logging looks for a marker that signifiies where the log entries block will start. Log entries must be consecutive without empty lines. The marker is specified in the config file. 
 
 
 ## Command line switches 
 
 ### No swithces
 
-When invoking the command `olog This is a log entry` olog will append the string `- HH:mm This is a log entry` (where HH:mm) is the current timestamp ) to the markdown daily note. 
+When invoking the command `obsidian-logging This is a log entry` obsidian-logging will append the string `- HH:mm This is a log entry` (where HH:mm) is the current timestamp ) to the markdown daily note. 
 
 ### -t or --time 
 
-The timestamp may be overridden by specifying the -t/--time HH:mm switch.  Log entries are sorted chronologically before being added to the md file. 
+The timestamp may be overridden by specifying the -t/--time HH:mm switch.  Log entries are sorted chronobsidian-loggingically before being added to the md file. 
 
 
 ### -l  or --list 
 
-You can list the current days log entries by specifying the -l option.  If olog is invoked without any arguments, this is the default action.
+You can list the current days log entries by specifying the -l option.  If obsidian-logging is invoked without any arguments, this is the default action.
 
 ### -b <days> or --back <days>
 
-By specifying `-b <number>` you can go back in time and list the logs `number` of days ago. `olog -b 0` is the same as `olog -l`
+By specifying `-b <number>` you can go back in time and list the logs `number` of days ago. `obsidian-logging -b 0` is the same as `obsidian-logging -l`
 
 ### -u or --undo 
 
@@ -69,7 +84,7 @@ Print command line argument help
 
 ### -T list mode 
 
-Specifies the list output mode when olog -l is called. Valid arguments are -T bullet and -T table. Overrides the list mode in olog.yaml configuration file
+Specifies the list output mode when obsidian-logging -l is called. Valid arguments are -T bullet and -T table. Overrides the list mode in obsidian-logging.yaml configuration file
 
 ### -v or --version 
 

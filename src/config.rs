@@ -87,13 +87,13 @@ impl Config {
 
 fn get_config_dir() -> PathBuf {
     if cfg!(windows) {
-        // On Windows, use %APPDATA%\olog
+        // On Windows, use %APPDATA%\obsidian-logging
         let app_data = env::var("APPDATA").expect("APPDATA environment variable not set");
-        PathBuf::from(app_data).join("olog")
+        PathBuf::from(app_data).join("obsidian-logging")
     } else {
-        // On Unix, use ~/.config/olog
+        // On Unix, use ~/.config/obsidian-logging
         let home = env::var("HOME").expect("HOME environment variable not set");
-        PathBuf::from(home).join(".config").join("olog")
+        PathBuf::from(home).join(".config").join("obsidian-logging")
     }
 }
 
@@ -114,7 +114,7 @@ fn expand_tilde(path: &str) -> String {
 
 pub fn initialize_config() -> Config {
     let config_dir = get_config_dir();
-    let config_path = config_dir.join("olog.yaml");
+    let config_path = config_dir.join("obsidian-logging.yaml");
 
     // Create config directory if it doesn't exist
     if !config_dir.exists() {
@@ -123,7 +123,7 @@ pub fn initialize_config() -> Config {
 
     // If config file doesn't exist, prompt for configuration values
     if !config_path.exists() {
-        println!("Welcome to olog! Let's set up your configuration.");
+        println!("Welcome to obsidian-logging! Let's set up your configuration.");
         println!("\nPlease enter the path to your Obsidian vault:");
         println!("(This is the directory containing your Obsidian notes)");
         if cfg!(windows) {
@@ -193,7 +193,7 @@ pub fn initialize_config() -> Config {
 }
 
 pub fn load_config() -> Config {
-    let config_path = get_config_dir().join("olog.yaml");
+    let config_path = get_config_dir().join("obsidian-logging.yaml");
 
     if config_path.exists() {
         let content = fs::read_to_string(config_path).expect("Could not read config file");
@@ -264,9 +264,9 @@ mod tests {
         
         let result = get_config_dir();
         let expected = if cfg!(windows) {
-            config_dir.join("olog")
+            config_dir.join("obsidian-logging")
         } else {
-            config_dir.join(".config").join("olog")
+            config_dir.join(".config").join("obsidian-logging")
         };
         
         assert_eq!(result.to_string_lossy(), expected.to_string_lossy());
@@ -288,9 +288,9 @@ mod tests {
         
         // Create config directory and file
         let olog_dir = if cfg!(windows) {
-            config_dir.join("olog")
+            config_dir.join("obsidian-logging")
         } else {
-            config_dir.join(".config").join("olog")
+            config_dir.join(".config").join("obsidian-logging")
         };
         fs::create_dir_all(&olog_dir).unwrap();
         
@@ -308,7 +308,7 @@ mod tests {
         };
         
         let yaml = serde_yaml::to_string(&config).unwrap();
-        fs::write(olog_dir.join("olog.yaml"), yaml).unwrap();
+        fs::write(olog_dir.join("obsidian-logging.yaml"), yaml).unwrap();
         
         // Test loading existing config
         let loaded_config = load_config();

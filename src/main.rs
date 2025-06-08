@@ -9,10 +9,10 @@ use std::str::FromStr;
 use config::{ListType, initialize_config};
 
 fn print_help() {
-    eprintln!("olog [options] [log entry]");
+    eprintln!("obsidian-logging [options] [log entry]");
     eprintln!("\nUsage:");
-    eprintln!("  olog                     List today's entries");
-    eprintln!("  olog <log entry>         Add a new log entry");
+    eprintln!("  obsidian-logging             List today's entries");
+    eprintln!("  obsidian-logging <log entry> Add a new log entry");
     eprintln!("\nOptions:");
     eprintln!("  -t, --time hh:mm         Override timestamp for the entry");
     eprintln!("  -l, --list               List today's entries");
@@ -24,9 +24,9 @@ fn print_help() {
     eprintln!("  -v, --version            Show version information");
     eprintln!("\nConfiguration:");
     if cfg!(windows) {
-        eprintln!("  Location: %APPDATA%\\olog\\olog.yaml");
+        eprintln!("  Location: %APPDATA%\\obsidian-logging\\obsidian-logging.yaml");
     } else {
-        eprintln!("  Location: ~/.config/olog/olog.yaml");
+        eprintln!("  Location: ~/.config/obsidian-logging/obsidian-logging.yaml");
     }
     eprintln!("  vault:            Path to Obsidian vault, overrides $OBSIDIAN_VAULT_DIR");
     eprintln!("  file_path_format: Format for daily note directory path");
@@ -87,7 +87,7 @@ fn main() {
             "-t" | "--time" => add::handle_with_time(remaining_args, &config),
             "-h" | "--help" => print_help(),
             "-v" | "--version" => {
-                println!("olog version {}", env!("CARGO_PKG_VERSION"));
+                println!("obsidian-logging version {}", env!("CARGO_PKG_VERSION"));
                 std::process::exit(0);
             },
             other => add::handle_plain_entry(other.to_string(), remaining_args, &config),

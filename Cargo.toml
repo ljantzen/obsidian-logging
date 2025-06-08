@@ -1,12 +1,12 @@
 [package]
-name = "olog"
+name = "obsidian-logging"
 version = "1.0.4"
 edition = "2021"
 description = "A journaling/logging CLI that stores logs in Obsidian markdown files"
 license = "MIT"
-repository = "https://github.com/ljantzen/olog"
-homepage = "https://github.com/ljantzen/olog"
-documentation = "https://docs.rs/olog"
+repository = "https://github.com/ljantzen/obsidian-logging"
+homepage = "https://github.com/ljantzen/obsidian-logging"
+documentation = "https://docs.rs/obsidian-logging"
 readme = "README.md"
 authors = ["Leif Jantzen"]
 keywords = ["obsidian", "journal", "logging", "cli", "markdown"]
