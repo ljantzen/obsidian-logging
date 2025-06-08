@@ -6,7 +6,7 @@ mod template;
 use crate::commands::{list, edit, remove, add};
 use std::env;
 use std::str::FromStr;
-use config::{load_config, ListType};
+use config::{ListType, initialize_config};
 
 fn print_help() {
     eprintln!("olog [options] [log entry]");
@@ -39,7 +39,7 @@ fn print_help() {
 }
 
 fn main() {
-    let mut config = load_config();
+    let mut config = initialize_config();
     let args = env::args().skip(1);
     
     // Process potential list type override first
