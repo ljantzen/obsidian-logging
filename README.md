@@ -4,7 +4,7 @@
 [![Documentation](https://docs.rs/olog/badge.svg)](https://docs.rs/olog)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This little utility written in Rust makes it possible for me to log directly to todays daily note from the linux command line. 
+This little utility written in Rust makes it possible to log directly to todays daily note from the linux command line. 
 
 ## Installation
 
@@ -30,12 +30,10 @@ Olog expects the environment variable $OBSIDIAN_VAULT_DIR to be defined and poin
 
 ## Configuration file
 
-Olog reads ~/.config/olog/olog.yaml on startup.  This is a file that uses the yaml configuration format.  See olog.example.yaml for what can be configured.
+Olog reads ~/.config/olog/olog.yaml on startup.  If it does not exist, olog will create it and prompt for some of the values. 
+This is a file that uses the yaml configuration format.  See olog.example.yaml for what can be configured. 
 
-My vault has a particular layout supported by Templater templates, and the example configuration reflects that.   
-
-Olog looks for a marker that signifiies where the log entries block will start. Log entries must be consecutive without empty lines. The marker is specified in the config file.
-In my case it is a level 2 heading with a clock emoji. 
+Olog looks for a marker that signifiies where the log entries block will start. Log entries must be consecutive without empty lines. The marker is specified in the config file. 
 
 
 ## Command line switches 
@@ -93,4 +91,5 @@ Outputs the current version string and exits execution
 # Contact info 
 
 https://mas.to/@jantzten
+
 https://bsky.app/profile/leif.jantzen.no
