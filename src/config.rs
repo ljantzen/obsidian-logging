@@ -1,14 +1,13 @@
-use serde::Deserialize;
-use serde::Serialize;
-use std::fs;
 use std::path::PathBuf;
-use std::env;
+use std::fs;
+use serde::{Serialize, Deserialize};
 use std::str::FromStr;
+use std::env;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum ListType {
     Bullet,
-    Table
+    Table,
 }
 
 impl<'de> Deserialize<'de> for ListType {
@@ -62,31 +61,17 @@ pub struct Config {
 impl Default for Config {
     fn default() -> Self {
         let vault_dir = env::var("OBSIDIAN_VAULT").unwrap_or_else(|_| "".to_string());
-        let home_dir = env::var("HOME").expect("HOME environment variable not set");
         
-        // Create the config directory if it doesn't exist
-        let config_dir = PathBuf::from(&home_dir).join(".config/olog");
-        if !config_dir.exists() {
-            if let Err(e) = fs::create_dir_all(&config_dir) {
-                eprintln!("Warning: Could not create config directory: {}", e);
-            }
-        }
-
-        // Create default template file if it doesn't exist
-        let template_path = config_dir.join("template.md");
-        if !template_path.exists() {
-            let default_template = "[[{yesterday}]] [[{tomorrow}]]\n\n## 📅️ {today} {weekday}\n\n## 🎯\n\n## 👀️\n\n## 🕗\n";
-            if let Err(e) = fs::write(&template_path, default_template) {
-                eprintln!("Warning: Could not create default template file: {}", e);
-            }
-        }
-
         Config {
             vault: vault_dir,
-            file_path_format: "10-Journal/{year}/{month}/{date}.md".to_string(),
+            file_path_format: if cfg!(windows) {
+                "10-Journal\\{year}\\{month}\\{date}.md".to_string()
+            } else {
+                "10-Journal/{year}/{month}/{date}.md".to_string()
+            },
             section_header: "## 🕗".to_string(),
             list_type: ListType::Bullet,
-            template_path: Some(template_path.to_string_lossy().into_owned()),
+            template_path: None,
             locale: None,
         }
     }
@@ -100,24 +85,35 @@ impl Config {
     }
 }
 
-pub fn load_config() -> Config {
-    let home_dir = env::var("HOME").expect("HOME environment variable not set");
-    let config_path: PathBuf = [home_dir.as_str(), ".config/olog/olog.yaml"].iter().collect();
-
-    if config_path.exists() {
-        let content = fs::read_to_string(config_path).expect("Could not read config file");
-        serde_yaml::from_str(&content).unwrap_or_else(|e| {
-            eprintln!("Error in configuration file: {}", e);
-            std::process::exit(1);
-        })
+fn get_config_dir() -> PathBuf {
+    if cfg!(windows) {
+        // On Windows, use %APPDATA%\olog
+        let app_data = env::var("APPDATA").expect("APPDATA environment variable not set");
+        PathBuf::from(app_data).join("olog")
     } else {
-        Config::default()
+        // On Unix, use ~/.config/olog
+        let home = env::var("HOME").expect("HOME environment variable not set");
+        PathBuf::from(home).join(".config").join("olog")
+    }
+}
+
+fn expand_tilde(path: &str) -> String {
+    if path.starts_with("~/") || path.starts_with("~\\") {
+        let home = if cfg!(windows) {
+            // On Windows, use USERPROFILE
+            env::var("USERPROFILE").expect("USERPROFILE environment variable not set")
+        } else {
+            // On Unix, use HOME
+            env::var("HOME").expect("HOME environment variable not set")
+        };
+        path.replacen("~", &home, 1)
+    } else {
+        path.to_string()
     }
 }
 
 pub fn initialize_config() -> Config {
-    let home_dir = env::var("HOME").expect("HOME environment variable not set");
-    let config_dir = PathBuf::from(&home_dir).join(".config/olog");
+    let config_dir = get_config_dir();
     let config_path = config_dir.join("olog.yaml");
 
     // Create config directory if it doesn't exist
@@ -130,28 +126,35 @@ pub fn initialize_config() -> Config {
         println!("Welcome to olog! Let's set up your configuration.");
         println!("\nPlease enter the path to your Obsidian vault:");
         println!("(This is the directory containing your Obsidian notes)");
+        if cfg!(windows) {
+            println!("Example: C:\\Users\\YourName\\Documents\\ObsidianVault");
+        } else {
+            println!("Example: ~/Documents/ObsidianVault");
+        }
         
         let mut vault_dir = String::new();
         std::io::stdin().read_line(&mut vault_dir).expect("Failed to read input");
         let vault_dir = vault_dir.trim().to_string();
-
-        // Expand ~ to home directory if present
-        let vault_dir = if vault_dir.starts_with("~") {
-            vault_dir.replace("~", &home_dir)
-        } else {
-            vault_dir
-        };
+        let vault_dir = expand_tilde(&vault_dir);
 
         println!("\nEnter the file path format for your daily notes:");
         println!("(This is the path within your vault where daily notes are stored)");
-        println!("Default: 10-Journal/{{year}}/{{month}}/{{date}}.md");
+        if cfg!(windows) {
+            println!("Default: 10-Journal\\{{year}}\\{{month}}\\{{date}}.md");
+        } else {
+            println!("Default: 10-Journal/{{year}}/{{month}}/{{date}}.md");
+        }
         println!("Available variables: {{year}}, {{month}}, {{date}}");
         
         let mut file_path_format = String::new();
         std::io::stdin().read_line(&mut file_path_format).expect("Failed to read input");
         let file_path_format = file_path_format.trim();
         let file_path_format = if file_path_format.is_empty() {
-            "10-Journal/{year}/{month}/{date}.md".to_string()
+            if cfg!(windows) {
+                "10-Journal\\{year}\\{month}\\{date}.md".to_string()
+            } else {
+                "10-Journal/{year}/{month}/{date}.md".to_string()
+            }
         } else {
             file_path_format.to_string()
         };
@@ -186,6 +189,185 @@ pub fn initialize_config() -> Config {
         config
     } else {
         load_config()
+    }
+}
+
+pub fn load_config() -> Config {
+    let config_path = get_config_dir().join("olog.yaml");
+
+    if config_path.exists() {
+        let content = fs::read_to_string(config_path).expect("Could not read config file");
+        serde_yaml::from_str(&content).unwrap_or_else(|e| {
+            eprintln!("Error in configuration file: {}", e);
+            std::process::exit(1);
+        })
+    } else {
+        Config::default()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+    use std::env;
+    use std::sync::{Once, Mutex};
+    use lazy_static::lazy_static;
+
+    static INIT: Once = Once::new();
+    
+    lazy_static! {
+        static ref TEST_DIR: Mutex<Option<TempDir>> = Mutex::new(None);
+    }
+
+    fn setup_test_env() -> PathBuf {
+        let mut test_dir = TEST_DIR.lock().unwrap();
+        if test_dir.is_none() {
+            *test_dir = Some(TempDir::new().unwrap());
+        }
+        let config_dir = test_dir.as_ref().unwrap().path().to_path_buf();
+        let config_dir_str = config_dir.to_str().expect("Invalid path");
+
+        // Initialize environment only once per test run
+        INIT.call_once(|| {
+            // SAFETY: We're only setting environment variables with valid UTF-8 strings
+            // in a controlled test environment, and we do this only once at the start
+            // of the test run.
+            unsafe {
+                if cfg!(windows) {
+                    env::set_var("APPDATA", config_dir_str);
+                } else {
+                    env::set_var("HOME", config_dir_str);
+                }
+                env::remove_var("OBSIDIAN_VAULT");
+            }
+        });
+
+        config_dir
+    }
+
+    #[test]
+    fn test_expand_tilde() {
+        let home_dir = setup_test_env();
+        
+        let test_path = "~/test/path";
+        let expanded = expand_tilde(test_path);
+        let expected = home_dir.join("test/path").to_string_lossy().into_owned();
+        
+        assert_eq!(expanded, expected);
+    }
+
+    #[test]
+    fn test_get_config_dir() {
+        let config_dir = setup_test_env();
+        
+        let result = get_config_dir();
+        let expected = if cfg!(windows) {
+            config_dir.join("olog")
+        } else {
+            config_dir.join(".config").join("olog")
+        };
+        
+        assert_eq!(result.to_string_lossy(), expected.to_string_lossy());
+    }
+
+    #[test]
+    fn test_load_config_default() {
+        let _config_dir = setup_test_env();
+        
+        // Test loading when config doesn't exist
+        let config = Config::default();
+        assert_eq!(config.vault, "");
+        assert_eq!(config.list_type, ListType::Bullet);
+    }
+
+    #[test]
+    fn test_load_config_existing() {
+        let config_dir = setup_test_env();
+        
+        // Create config directory and file
+        let olog_dir = if cfg!(windows) {
+            config_dir.join("olog")
+        } else {
+            config_dir.join(".config").join("olog")
+        };
+        fs::create_dir_all(&olog_dir).unwrap();
+        
+        let mut test_path = PathBuf::from("/test");
+        test_path.push("vault");
+        let vault_path = test_path.to_str().unwrap().to_string();
+
+        let config = Config {
+            vault: vault_path.clone(),
+            file_path_format: "test/{year}/{month}/{date}.md".to_string(),
+            section_header: "## Test".to_string(),
+            list_type: ListType::Table,
+            template_path: None,
+            locale: None,
+        };
+        
+        let yaml = serde_yaml::to_string(&config).unwrap();
+        fs::write(olog_dir.join("olog.yaml"), yaml).unwrap();
+        
+        // Test loading existing config
+        let loaded_config = load_config();
+        assert_eq!(loaded_config.vault, vault_path);
+        assert_eq!(loaded_config.list_type, ListType::Table);
+    }
+
+    #[test]
+    fn test_list_type_serialization() {
+        // Test serialization
+        let bullet = ListType::Bullet;
+        let table = ListType::Table;
+        
+        let bullet_yaml = serde_yaml::to_string(&bullet).unwrap();
+        let table_yaml = serde_yaml::to_string(&table).unwrap();
+        
+        assert_eq!(bullet_yaml.trim(), "Bullet");
+        assert_eq!(table_yaml.trim(), "Table");
+        
+        // Test deserialization
+        let bullet_back: ListType = serde_yaml::from_str("Bullet").unwrap();
+        let table_back: ListType = serde_yaml::from_str("Table").unwrap();
+        
+        assert_eq!(bullet_back, ListType::Bullet);
+        assert_eq!(table_back, ListType::Table);
+        
+        // Test case insensitivity
+        let bullet_upper: ListType = serde_yaml::from_str("BULLET").unwrap();
+        assert_eq!(bullet_upper, ListType::Bullet);
+    }
+
+    #[test]
+    fn test_config_serialization() {
+        let mut test_path = PathBuf::from("/test");
+        test_path.push("vault");
+        let vault_path = test_path.to_str().unwrap().to_string();
+
+        let mut template_path = PathBuf::from("/test");
+        template_path.push("template.md");
+        let template_path_str = template_path.to_str().unwrap().to_string();
+
+        let config = Config {
+            vault: vault_path,
+            file_path_format: "test/{year}/{month}/{date}.md".to_string(),
+            section_header: "## Test".to_string(),
+            list_type: ListType::Bullet,
+            template_path: Some(template_path_str),
+            locale: Some("en_US".to_string()),
+        };
+        
+        let yaml = serde_yaml::to_string(&config).unwrap();
+        let config_back: Config = serde_yaml::from_str(&yaml).unwrap();
+        
+        assert_eq!(config.vault, config_back.vault);
+        assert_eq!(config.file_path_format, config_back.file_path_format);
+        assert_eq!(config.section_header, config_back.section_header);
+        assert_eq!(config.list_type, config_back.list_type);
+        assert_eq!(config.template_path, config_back.template_path);
+        assert_eq!(config.locale, config_back.locale);
     }
 }
 

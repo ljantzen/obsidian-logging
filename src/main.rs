@@ -22,7 +22,12 @@ fn print_help() {
     eprintln!("  -T <list-type>           Override list type (bullet or table)");
     eprintln!("  -h, --help               Show this help message");
     eprintln!("  -v, --version            Show version information");
-    eprintln!("\nConfiguration (~/.config/olog/olog.yaml):");
+    eprintln!("\nConfiguration:");
+    if cfg!(windows) {
+        eprintln!("  Location: %APPDATA%\\olog\\olog.yaml");
+    } else {
+        eprintln!("  Location: ~/.config/olog/olog.yaml");
+    }
     eprintln!("  vault:            Path to Obsidian vault, overrides $OBSIDIAN_VAULT_DIR");
     eprintln!("  file_path_format: Format for daily note directory path");
     eprintln!("  section_header:   Marker for log entries section");

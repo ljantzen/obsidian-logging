@@ -1,6 +1,28 @@
 # Olog - Log to Obsidian Journal from command line 
 
+[![Crates.io](https://img.shields.io/crates/v/olog.svg)](https://crates.io/crates/olog)
+[![Documentation](https://docs.rs/olog/badge.svg)](https://docs.rs/olog)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 This little utility written in Rust makes it possible for me to log directly to todays daily note from the linux command line. 
+
+## Installation
+
+You can install olog using cargo:
+
+```bash
+cargo install olog
+```
+
+Or build from source:
+
+```bash
+git clone https://github.com/ljantzen/olog
+cd olog
+cargo build --release
+```
+
+The binary will be available at `target/release/olog`.
 
 ## Environment variable
 

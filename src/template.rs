@@ -1,12 +1,12 @@
-use chrono::{Local, Duration, Datelike, Weekday, Locale};
+use chrono::{Local, Duration, Datelike, Locale, Weekday};
 use std::fs;
 use std::path::PathBuf;
 use crate::config::Config;
 
 pub struct TemplateData {
-    pub today_date: String,
-    pub yesterday_date: String,
-    pub tomorrow_date: String,
+    pub today: String,
+    pub yesterday: String,
+    pub tomorrow: String,
     pub weekday: String,
     pub created: String,
 }
@@ -63,9 +63,9 @@ impl TemplateData {
         };
 
         Self {
-            today_date: today.format("%Y-%m-%d").to_string(),
-            yesterday_date: yesterday.format("%Y-%m-%d").to_string(),
-            tomorrow_date: tomorrow.format("%Y-%m-%d").to_string(),
+            today: today.format("%Y-%m-%d").to_string(),
+            yesterday: yesterday.format("%Y-%m-%d").to_string(),
+            tomorrow: tomorrow.format("%Y-%m-%d").to_string(),
             weekday,
             created: now.format("%Y-%m-%d %H:%M").to_string(),
         }
@@ -104,9 +104,9 @@ pub fn process_template(template_path: &str, data: &TemplateData) -> String {
     };
 
     template
-        .replace("{today}", &data.today_date)
-        .replace("{yesterday}", &data.yesterday_date)
-        .replace("{tomorrow}", &data.tomorrow_date)
+        .replace("{today}", &data.today)
+        .replace("{yesterday}", &data.yesterday)
+        .replace("{tomorrow}", &data.tomorrow)
         .replace("{weekday}", &data.weekday)
         .replace("{created}", &data.created)
 }
@@ -117,5 +117,131 @@ pub fn get_template_content(config: &Config) -> String {
     match &config.template_path {
         Some(path) => process_template(path, &template_data),
         None => String::from("## 🕗\n\n"),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Duration;
+    use std::fs;
+    use std::path::PathBuf;
+    use crate::config::ListType;
+    use regex::Regex;
+
+    fn create_test_template() -> PathBuf {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let template_path = temp_dir.path().join("template.md");
+        fs::write(&template_path, "# {today} ({weekday})\n\nYesterday: {yesterday}\nTomorrow: {tomorrow}\nCreated: {created}").unwrap();
+        template_path
+    }
+
+    #[test]
+    fn test_template_data_new() {
+        let data = TemplateData::new(None);
+        let now = Local::now();
+        let today = now.date_naive();
+        let yesterday = today - Duration::days(1);
+        let tomorrow = today + Duration::days(1);
+        
+        assert_eq!(data.today, today.format("%Y-%m-%d").to_string());
+        assert_eq!(data.yesterday, yesterday.format("%Y-%m-%d").to_string());
+        assert_eq!(data.tomorrow, tomorrow.format("%Y-%m-%d").to_string());
+        assert!(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
+            .contains(&data.weekday.as_str()));
+        
+        // Verify created timestamp format
+        let timestamp_pattern = Regex::new(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$").unwrap();
+        assert!(timestamp_pattern.is_match(&data.created));
+    }
+
+    #[test]
+    fn test_template_data_with_locale() {
+        let data = TemplateData::new(Some("nb_NO"));
+        let now = Local::now();
+        let today = now.date_naive();
+        let yesterday = today - Duration::days(1);
+        let tomorrow = today + Duration::days(1);
+        
+        assert_eq!(data.today, today.format("%Y-%m-%d").to_string());
+        assert_eq!(data.yesterday, yesterday.format("%Y-%m-%d").to_string());
+        assert_eq!(data.tomorrow, tomorrow.format("%Y-%m-%d").to_string());
+        assert!(["mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag", "søndag"]
+            .contains(&data.weekday.as_str()));
+        
+        // Verify created timestamp format
+        let timestamp_pattern = Regex::new(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$").unwrap();
+        assert!(timestamp_pattern.is_match(&data.created));
+    }
+
+    #[test]
+    fn test_process_template() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let template_path = temp_dir.path().join("template.md");
+        
+        let template_content = r#"# {{today}} ({{weekday}})
+Yesterday: [[{{yesterday}}]]
+Tomorrow: [[{{tomorrow}}]]
+Created: {{created}}"#;
+        
+        fs::write(&template_path, template_content).unwrap();
+        
+        let data = TemplateData::new(None);
+        let result = process_template(template_path.to_str().unwrap(), &data);
+        
+        assert!(result.contains(&data.today));
+        assert!(result.contains(&data.weekday));
+        assert!(result.contains(&data.yesterday));
+        assert!(result.contains(&data.tomorrow));
+        assert!(result.contains(&data.created));
+    }
+
+    #[test]
+    fn test_process_template_missing_file() {
+        let data = TemplateData::new(None);
+        let result = process_template("/nonexistent/path", &data);
+        
+        // Should return default template with just the log section
+        assert_eq!(result, "## 🕗\n\n");
+    }
+
+    #[test]
+    fn test_get_template_content() {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let template_path = temp_dir.path().join("template.md");
+        
+        let template_content = "# Test Template\n{{today}}\n";
+        fs::write(&template_path, template_content).unwrap();
+        
+        let config = Config {
+            vault: "/test/vault".to_string(),
+            file_path_format: "test/{year}/{month}/{date}.md".to_string(),
+            section_header: "## Test".to_string(),
+            list_type: ListType::Bullet,
+            template_path: Some(template_path.to_str().unwrap().to_string()),
+            locale: None,
+        };
+        
+        let result = get_template_content(&config);
+        
+        assert!(result.starts_with("# Test Template\n"));
+        assert!(result.contains(Local::now().date_naive().format("%Y-%m-%d").to_string().as_str()));
+    }
+
+    #[test]
+    fn test_get_template_content_no_template() {
+        let config = Config {
+            vault: "/test/vault".to_string(),
+            file_path_format: "test/{year}/{month}/{date}.md".to_string(),
+            section_header: "## Test".to_string(),
+            list_type: ListType::Bullet,
+            template_path: None,
+            locale: None,
+        };
+        
+        let result = get_template_content(&config);
+        
+        // Should return default template with just the log section
+        assert_eq!(result, "## 🕗\n\n");
     }
 } 

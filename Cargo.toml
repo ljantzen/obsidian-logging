@@ -1,12 +1,21 @@
 [package]
 name = "olog"
 version = "1.0.4"
-edition = "2024"
+edition = "2021"
 description = "A journaling/logging CLI that stores logs in Obsidian markdown files"
-license = "MIT"  
+license = "MIT"
 repository = "https://github.com/ljantzen/olog"
 homepage = "https://github.com/ljantzen/olog"
-documentation = ""
+documentation = "https://docs.rs/olog"
+readme = "README.md"
+authors = ["Leif Jantzen"]
+keywords = ["obsidian", "journal", "logging", "cli", "markdown"]
+categories = ["command-line-utilities", "text-processing"]
+exclude = [
+    "/.github",
+    "/tests",
+    "/.gitignore",
+]
 
 [dependencies]
 chrono = { version = "0.4", features = ["unstable-locales"] }
@@ -15,4 +24,7 @@ dirs = "5.0"
 serde_yaml = "0.9"
 regex = "1.10"
 lazy_static = "1.4"
+
+[dev-dependencies]
+tempfile = "3.10"
 
