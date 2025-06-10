@@ -18,13 +18,26 @@ exclude = [
 ]
 
 [dependencies]
-chrono = { version = "0.4", features = ["unstable-locales"] }
-serde = { version = "1.0", features = ["derive"] }
-dirs = "5.0"
-serde_yaml = "0.9"
-regex = "1.10"
+chrono = { version = "0.4.31", features = ["serde", "unstable-locales"] }
+clap = { version = "4.4.11", features = ["derive"] }
+serde = { version = "1.0.193", features = ["derive"] }
+serde_yaml = "0.9.29"
+regex = "1.10.2"
+dirs = "5.0.1"
 lazy_static = "1.4"
 
 [dev-dependencies]
-tempfile = "3.10"
+tempfile = "3.10.1"
+
+[[test]]
+name = "list_tests"
+path = "tests/list_tests.rs"
+
+[[test]]
+name = "add_tests"
+path = "tests/add_tests.rs"
+
+[[test]]
+name = "utils_tests"
+path = "tests/utils_tests.rs"
 

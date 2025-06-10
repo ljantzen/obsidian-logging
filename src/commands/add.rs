@@ -1,64 +1,60 @@
-use chrono::{Local, Timelike, NaiveTime};
+use chrono::{Local, NaiveTime, Timelike};
 use std::fs::{create_dir_all, read_to_string, write};
 use crate::config::{Config, ListType};
 use crate::utils::{get_log_path_for_date, extract_log_entries, format_time, parse_time};
 use crate::template::get_template_content;
 
-/// Format a table row with given widths for timestamp and entry columns
-fn format_table_row(timestamp: &str, entry: &str, time_width: usize, entry_width: usize) -> String {
-    format!("| {:<width$} | {:<width2$} |", timestamp, entry, width=time_width, width2=entry_width)
-}
-
-/// Format a table separator line with given column widths
-fn format_table_separator(time_width: usize, entry_width: usize) -> String {
-    format!("|-{:-<width$}-|-{:-<width2$}-|", "", "", width=time_width, width2=entry_width)
-}
-
 /// Parse a table row into (timestamp, entry)
 fn parse_table_row(line: &str) -> Option<(String, String)> {
-    // Skip header and separator rows
-    if line.contains("Tidspunkt | Hendelse") || line.trim().chars().all(|c| c == '|' || c == '-') {
-        return None;
-    }
-    
     let parts: Vec<&str> = line.split('|').collect();
-    if parts.len() >= 3 {
-        Some((parts[1].trim().to_string(), parts[2].trim().to_string()))
-    } else {
-        None
+    if parts.len() >= 4 {
+        let time = parts[1].trim();
+        let entry = parts[2].trim();
+        if !time.is_empty() && !entry.is_empty() {
+            return Some((time.to_string(), entry.to_string()));
+        }
     }
+    None
 }
 
 /// Parse a bullet entry into (timestamp, entry)
 fn parse_bullet_entry(line: &str) -> Option<(String, String)> {
     let content = line.trim_start_matches(|c| c == '-' || c == '*' || c == ' ');
     if let Some(space_pos) = content.find(' ') {
-        let (time, rest) = content.split_at(space_pos);
-        if time.len() == 5 && time.chars().nth(2) == Some(':') {
-            return Some((time.to_string(), rest.trim().to_string()));
-        }
+        let (time, entry) = content.split_at(space_pos);
+        return Some((time.trim().to_string(), entry.trim().to_string()));
     }
     None
 }
 
 pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config) {
-    let time_str = args.next().unwrap_or_else(|| {
-        eprintln!("Error: -t/--time needs a timestamp with the format HH:mm or HH:mm AM/PM");
-        std::process::exit(1);
-    });
+    let time_str = args.next().expect("Expected time as first argument");
+    let mut sentence_parts = Vec::new();
 
-    let time_override = Some(parse_time(&time_str).unwrap_or_else(|| {
-        eprintln!("Error: invalid timestamp '{}'. Use the format HH:mm or HH:mm AM/PM", time_str);
-        std::process::exit(1);
-    }));
-
-    let sentence_parts: Vec<String> = args.collect();
-    if sentence_parts.is_empty() {
-        eprintln!("Error: No log statement provided.");
-        std::process::exit(1);
+    // Check if next word is AM/PM
+    if let Some(next_word) = args.next() {
+        if next_word.eq_ignore_ascii_case("am") || next_word.eq_ignore_ascii_case("pm") {
+            let time_with_period = format!("{} {}", time_str, next_word);
+            if let Some(time) = parse_time(&time_with_period) {
+                sentence_parts.extend(args);
+                handle_plain_entry_with_time(sentence_parts, Some(time), config);
+                return;
+            }
+        } else {
+            sentence_parts.push(next_word);
+        }
     }
 
-    handle_plain_entry_with_time(sentence_parts, time_override, config);
+    // Try parsing time without AM/PM
+    if let Some(time) = parse_time(&time_str) {
+        sentence_parts.extend(args);
+        handle_plain_entry_with_time(sentence_parts, Some(time), config);
+    } else {
+        // If time parsing failed, treat first argument as part of the sentence
+        sentence_parts.insert(0, time_str);
+        sentence_parts.extend(args);
+        handle_plain_entry_with_time(sentence_parts, None, config);
+    }
 }
 
 pub fn handle_plain_entry(first_arg: String, args: impl Iterator<Item=String>, config: &Config) {
@@ -67,7 +63,7 @@ pub fn handle_plain_entry(first_arg: String, args: impl Iterator<Item=String>, c
     handle_plain_entry_with_time(sentence_parts, None, config);
 }
 
-fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Option<NaiveTime>, config: &Config) {
+pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Option<NaiveTime>, config: &Config) {
     let sentence = sentence_parts.join(" ");
     let now = Local::now();
     let date = now.date_naive();
@@ -138,13 +134,11 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
 
             // Format table
             let mut table = Vec::new();
-            // Always show header for table format in new files or when explicitly set
-            if is_new_file || effective_type == ListType::Table {
-                table.push(format_table_row("Tidspunkt", "Hendelse", max_time_width, max_entry_width));
-                table.push(format_table_separator(max_time_width, max_entry_width));
-            }
+            // Always show header for table format
+            table.push(format!("| Tidspunkt | Hendelse |"));
+            table.push(format!("| --------- | -------- |"));
             table.extend(parsed_entries.into_iter().map(|(time, entry)| {
-                format_table_row(&time, &entry, max_time_width, max_entry_width)
+                format!("| {} | {} |", time, entry)
             }));
             table
         }
@@ -167,96 +161,5 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
     println!("Logged.");
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-    use tempfile::TempDir;
-    use chrono::NaiveTime;
 
-    fn setup_test_env() -> (TempDir, Config) {
-        let temp_dir = TempDir::new().unwrap();
-        let config = Config {
-            vault: temp_dir.path().to_str().unwrap().to_string(),
-            file_path_format: "{date}.md".to_string(),
-            section_header: "## Test".to_string(),
-            list_type: ListType::Bullet,
-            template_path: None,
-            locale: None,
-            time_format: TimeFormat::Hour24,
-        };
-        (temp_dir, config)
-    }
-
-    #[test]
-    fn test_add_with_time_format() {
-        let (temp_dir, mut config) = setup_test_env();
-        let today = Local::now().date_naive();
-        let file_path = temp_dir.path().join(format!("{}.md", today));
-
-        // Test with 24-hour format
-        config.time_format = TimeFormat::Hour24;
-        let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
-        handle_plain_entry_with_time(vec!["Test entry".to_string()], Some(time), &config);
-
-        let content = fs::read_to_string(&file_path).unwrap();
-        assert!(content.contains("* 14:30 Test entry"));
-
-        // Test with 12-hour format
-        config.time_format = TimeFormat::Hour12;
-        let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
-        handle_plain_entry_with_time(vec!["Another test".to_string()], Some(time), &config);
-
-        let content = fs::read_to_string(&file_path).unwrap();
-        assert!(content.contains("* 02:30 PM Another test"));
-    }
-
-    #[test]
-    fn test_add_with_time_override() {
-        let (temp_dir, mut config) = setup_test_env();
-        let today = Local::now().date_naive();
-        let file_path = temp_dir.path().join(format!("{}.md", today));
-
-        // Test with 24-hour format and 12-hour time input
-        config.time_format = TimeFormat::Hour24;
-        let args = vec!["02:30".to_string(), "PM".to_string(), "Test".to_string(), "entry".to_string()];
-        handle_with_time(args.into_iter(), &config);
-
-        let content = fs::read_to_string(&file_path).unwrap();
-        assert!(content.contains("* 14:30 Test entry"));
-
-        // Test with 12-hour format and 24-hour time input
-        config.time_format = TimeFormat::Hour12;
-        let args = vec!["14:30".to_string(), "Another".to_string(), "test".to_string()];
-        handle_with_time(args.into_iter(), &config);
-
-        let content = fs::read_to_string(&file_path).unwrap();
-        assert!(content.contains("* 02:30 PM Another test"));
-    }
-
-    #[test]
-    fn test_add_with_table_format() {
-        let (temp_dir, mut config) = setup_test_env();
-        let today = Local::now().date_naive();
-        let file_path = temp_dir.path().join(format!("{}.md", today));
-
-        // Test with 24-hour format and table
-        config.time_format = TimeFormat::Hour24;
-        config.list_type = ListType::Table;
-        let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
-        handle_plain_entry_with_time(vec!["Test entry".to_string()], Some(time), &config);
-
-        let content = fs::read_to_string(&file_path).unwrap();
-        assert!(content.contains("| 14:30 | Test entry |"));
-
-        // Test with 12-hour format and table
-        config.time_format = TimeFormat::Hour12;
-        config.list_type = ListType::Table;
-        let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
-        handle_plain_entry_with_time(vec!["Another test".to_string()], Some(time), &config);
-
-        let content = fs::read_to_string(&file_path).unwrap();
-        assert!(content.contains("| 02:30 PM | Another test |"));
-    }
-}
 

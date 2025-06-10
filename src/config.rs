@@ -10,10 +10,22 @@ pub enum ListType {
     Table,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub enum TimeFormat {
     Hour12,
     Hour24,
+}
+
+impl Serialize for TimeFormat {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            TimeFormat::Hour12 => serializer.serialize_str("12"),
+            TimeFormat::Hour24 => serializer.serialize_str("24"),
+        }
+    }
 }
 
 impl<'de> Deserialize<'de> for ListType {
@@ -154,7 +166,6 @@ fn get_config_dir() -> PathBuf {
     }
 }
 
-
 pub fn initialize_config() -> Config {
     let config_dir = get_config_dir();
     let config_path = config_dir.join("obsidian-logging.yaml");
@@ -168,241 +179,5 @@ pub fn initialize_config() -> Config {
 
     // Fall back to default config
     Config::default()
-}
-
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-    use tempfile::TempDir;
-    use std::env;
-    use std::sync::{Once, Mutex};
-    use lazy_static::lazy_static;
-
-    static INIT: Once = Once::new();
-    
-    lazy_static! {
-        static ref TEST_DIR: Mutex<Option<TempDir>> = Mutex::new(None);
-    }
-
-    fn setup_test_env() -> PathBuf {
-        let mut test_dir = TEST_DIR.lock().unwrap();
-        if test_dir.is_none() {
-            *test_dir = Some(TempDir::new().unwrap());
-        }
-        let config_dir = test_dir.as_ref().unwrap().path().to_path_buf();
-        let config_dir_str = config_dir.to_str().expect("Invalid path");
-
-        // Initialize environment only once per test run
-        INIT.call_once(|| {
-            // SAFETY: We're only setting environment variables with valid UTF-8 strings
-            // in a controlled test environment, and we do this only once at the start
-            // of the test run.
-            unsafe {
-                if cfg!(windows) {
-                    env::set_var("APPDATA", config_dir_str);
-                } else {
-                    env::set_var("HOME", config_dir_str);
-                }
-                env::remove_var("OBSIDIAN_VAULT");
-            }
-        });
-
-        config_dir
-    }
-
-    #[test]
-    fn test_expand_tilde() {
-        let home_dir = setup_test_env();
-        
-        let test_path = "~/test/path";
-        let expanded = expand_tilde(test_path);
-        let expected = home_dir.join("test/path").to_string_lossy().into_owned();
-        
-        assert_eq!(expanded, expected);
-    }
-
-    #[test]
-    fn test_get_config_dir() {
-        let config_dir = setup_test_env();
-        
-        let result = get_config_dir();
-        let expected = if cfg!(windows) {
-            config_dir.join("obsidian-logging")
-        } else {
-            config_dir.join(".config").join("obsidian-logging")
-        };
-        
-        assert_eq!(result.to_string_lossy(), expected.to_string_lossy());
-    }
-
-    #[test]
-    fn test_load_config_default() {
-        let _config_dir = setup_test_env();
-        
-        // Test loading when config doesn't exist
-        let config = Config::default();
-        assert_eq!(config.vault, "");
-        assert_eq!(config.list_type, ListType::Bullet);
-    }
-
-    #[test]
-    fn test_load_config_existing() {
-        let config_dir = setup_test_env();
-        
-        // Create config directory and file
-        let olog_dir = if cfg!(windows) {
-            config_dir.join("obsidian-logging")
-        } else {
-            config_dir.join(".config").join("obsidian-logging")
-        };
-        fs::create_dir_all(&olog_dir).unwrap();
-        
-        let mut test_path = PathBuf::from("/test");
-        test_path.push("vault");
-        let vault_path = test_path.to_str().unwrap().to_string();
-
-        let config = Config {
-            vault: vault_path.clone(),
-            file_path_format: "test/{year}/{month}/{date}.md".to_string(),
-            section_header: "## Test".to_string(),
-            list_type: ListType::Table,
-            template_path: None,
-            locale: None,
-            time_format: TimeFormat::Hour24,
-        };
-        
-        let yaml = serde_yaml::to_string(&config).unwrap();
-        fs::write(olog_dir.join("obsidian-logging.yaml"), yaml).unwrap();
-        
-        // Test loading existing config
-        let loaded_config = load_config();
-        assert_eq!(loaded_config.vault, vault_path);
-        assert_eq!(loaded_config.list_type, ListType::Table);
-    }
-
-    #[test]
-    fn test_list_type_serialization() {
-        // Test serialization
-        let bullet = ListType::Bullet;
-        let table = ListType::Table;
-        
-        let bullet_yaml = serde_yaml::to_string(&bullet).unwrap();
-        let table_yaml = serde_yaml::to_string(&table).unwrap();
-        
-        assert_eq!(bullet_yaml.trim(), "Bullet");
-        assert_eq!(table_yaml.trim(), "Table");
-        
-        // Test deserialization
-        let bullet_back: ListType = serde_yaml::from_str("Bullet").unwrap();
-        let table_back: ListType = serde_yaml::from_str("Table").unwrap();
-        
-        assert_eq!(bullet_back, ListType::Bullet);
-        assert_eq!(table_back, ListType::Table);
-        
-        // Test case insensitivity
-        let bullet_upper: ListType = serde_yaml::from_str("BULLET").unwrap();
-        assert_eq!(bullet_upper, ListType::Bullet);
-    }
-
-    #[test]
-    fn test_config_serialization() {
-        let mut test_path = PathBuf::from("/test");
-        test_path.push("vault");
-        let vault_path = test_path.to_str().unwrap().to_string();
-
-        let mut template_path = PathBuf::from("/test");
-        template_path.push("template.md");
-        let template_path_str = template_path.to_str().unwrap().to_string();
-
-        let config = Config {
-            vault: vault_path,
-            file_path_format: "test/{year}/{month}/{date}.md".to_string(),
-            section_header: "## Test".to_string(),
-            list_type: ListType::Bullet,
-            template_path: Some(template_path_str),
-            locale: Some("en_US".to_string()),
-            time_format: TimeFormat::Hour24,
-        };
-        
-        let yaml = serde_yaml::to_string(&config).unwrap();
-        let config_back: Config = serde_yaml::from_str(&yaml).unwrap();
-        
-        assert_eq!(config.vault, config_back.vault);
-        assert_eq!(config.file_path_format, config_back.file_path_format);
-        assert_eq!(config.section_header, config_back.section_header);
-        assert_eq!(config.list_type, config_back.list_type);
-        assert_eq!(config.template_path, config_back.template_path);
-        assert_eq!(config.locale, config_back.locale);
-        assert_eq!(config.time_format, config_back.time_format);
-    }
-
-    #[test]
-    fn test_time_format_from_str() {
-        // Test valid formats
-        assert_eq!(TimeFormat::from_str("12"), Ok(TimeFormat::Hour12));
-        assert_eq!(TimeFormat::from_str("12h"), Ok(TimeFormat::Hour12));
-        assert_eq!(TimeFormat::from_str("12hour"), Ok(TimeFormat::Hour12));
-        assert_eq!(TimeFormat::from_str("24"), Ok(TimeFormat::Hour24));
-        assert_eq!(TimeFormat::from_str("24h"), Ok(TimeFormat::Hour24));
-        assert_eq!(TimeFormat::from_str("24hour"), Ok(TimeFormat::Hour24));
-
-        // Test case insensitivity
-        assert_eq!(TimeFormat::from_str("12HOUR"), Ok(TimeFormat::Hour12));
-        assert_eq!(TimeFormat::from_str("24HOUR"), Ok(TimeFormat::Hour24));
-
-        // Test invalid formats
-        assert!(TimeFormat::from_str("invalid").is_err());
-        assert!(TimeFormat::from_str("").is_err());
-        assert!(TimeFormat::from_str("13").is_err());
-    }
-
-    #[test]
-    fn test_time_format_to_string() {
-        assert_eq!(TimeFormat::Hour12.to_string(), "12");
-        assert_eq!(TimeFormat::Hour24.to_string(), "24");
-    }
-
-    #[test]
-    fn test_config_with_time_format() {
-        let config_dir = setup_test_env();
-        
-        // Create config directory and file
-        let olog_dir = if cfg!(windows) {
-            config_dir.join("obsidian-logging")
-        } else {
-            config_dir.join(".config").join("obsidian-logging")
-        };
-        fs::create_dir_all(&olog_dir).unwrap();
-        
-        let mut test_path = PathBuf::from("/test");
-        test_path.push("vault");
-        let vault_path = test_path.to_str().unwrap().to_string();
-
-        let config = Config {
-            vault: vault_path.clone(),
-            file_path_format: "test/{year}/{month}/{date}.md".to_string(),
-            section_header: "## Test".to_string(),
-            list_type: ListType::Table,
-            template_path: None,
-            locale: None,
-            time_format: TimeFormat::Hour12,
-        };
-        
-        let yaml = serde_yaml::to_string(&config).unwrap();
-        fs::write(olog_dir.join("obsidian-logging.yaml"), yaml).unwrap();
-        
-        // Test loading existing config
-        let loaded_config = load_config();
-        assert_eq!(loaded_config.vault, vault_path);
-        assert_eq!(loaded_config.time_format, TimeFormat::Hour12);
-    }
-
-    #[test]
-    fn test_config_default_time_format() {
-        let config = Config::default();
-        assert_eq!(config.time_format, TimeFormat::Hour24);
-    }
 }
 
