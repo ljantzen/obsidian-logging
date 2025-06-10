@@ -1,4 +1,4 @@
-use chrono::{Datelike, NaiveDate, NaiveTime, Timelike};
+use chrono::{NaiveDate, NaiveTime, Timelike};
 use std::path::PathBuf;
 use crate::config::{ListType, Config, TimeFormat};
 use regex::Regex;

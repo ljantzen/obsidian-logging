@@ -110,13 +110,14 @@ fn test_add_with_bullet_format() {
     write(&log_path, initial_content).unwrap();
     
     // Add new log entry
-    handle_plain_entry_with_time(vec!["Second entry".to_string()], None, &config);
+    let time = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
+    handle_plain_entry_with_time(vec!["Second entry".to_string()], Some(time), &config);
     
     // Read and verify content
     let content = read_to_string(&log_path).unwrap();
     let (_, _, entries, _) = extract_log_entries(&content, &config.section_header, &config.list_type);
     
     assert_eq!(entries.len(), 2);
-    assert!(entries[0].contains("First entry"));
-    assert!(entries[1].contains("Second entry"));
+    assert!(entries[0].contains("Second entry"));
+    assert!(entries[1].contains("First entry"));
 } 
