@@ -3,6 +3,12 @@ file_path_format: 10-Journal/{year}/{month}/{date}.md
 section_header: "## 🕗"
 list_type: bullet
 template_path: ~/.config/obsidian-logging/template.md
+# Optional: Time format for timestamps (12 or 24 hour)
+# Examples:
+#   time_format: 12    # 12-hour format (e.g. 02:30 PM)
+#   time_format: 24    # 24-hour format (e.g. 14:30)
+# If not specified, defaults to 24-hour format
+time_format: 24
 # Optional: Specify locale for weekday names
 # Examples:
 #   locale: en_US    # English

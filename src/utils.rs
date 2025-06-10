@@ -1,11 +1,52 @@
-use chrono::{Datelike, NaiveDate};
+use chrono::{Datelike, NaiveDate, NaiveTime, Timelike};
 use std::path::PathBuf;
-use crate::config::{ListType, Config};
+use crate::config::{ListType, Config, TimeFormat};
 use regex::Regex;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref TIME_PATTERN: Regex = Regex::new(r"^(?:[-*]\s*)?(\d{2}:\d{2})\s*(.+)$").unwrap();
+    static ref TIME_PATTERN: Regex = Regex::new(r"^(?:[-*]\s*)?(\d{2}:\d{2}(?:\s*[AaPp][Mm])?)\s*(.+)$").unwrap();
+}
+
+/// Format time according to the specified format (12 or 24 hour)
+pub fn format_time(time: NaiveTime, format: &TimeFormat) -> String {
+    match format {
+        TimeFormat::Hour12 => {
+            let hour = time.hour();
+            let minute = time.minute();
+            let period = if hour < 12 { "AM" } else { "PM" };
+            let hour12 = if hour == 0 { 12 } else if hour > 12 { hour - 12 } else { hour };
+            format!("{:02}:{:02} {}", hour12, minute, period)
+        }
+        TimeFormat::Hour24 => {
+            format!("{:02}:{:02}", time.hour(), time.minute())
+        }
+    }
+}
+
+/// Parse time string in either 12 or 24 hour format
+pub fn parse_time(time_str: &str) -> Option<NaiveTime> {
+    // Try 24-hour format first
+    if let Ok(time) = NaiveTime::parse_from_str(time_str, "%H:%M") {
+        return Some(time);
+    }
+
+    // Try 12-hour format with various patterns
+    let time_str = time_str.trim().to_uppercase();
+    let patterns = [
+        "%I:%M %p",
+        "%I:%M%p",
+        "%l:%M %p",
+        "%l:%M%p",
+    ];
+
+    for pattern in patterns {
+        if let Ok(time) = NaiveTime::parse_from_str(&time_str, pattern) {
+            return Some(time);
+        }
+    }
+
+    None
 }
 
 /// Build file path for given date and format string from configuration yaml
@@ -118,41 +159,40 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
                     let mut formatted = Vec::new();
                     formatted.push(format_table_row("Tidspunkt", "Hendelse", max_time_width, max_entry_width));
                     formatted.push(format_table_separator(max_time_width, max_entry_width));
-                    
                     formatted.extend(parsed_entries.into_iter().map(|(time, entry)| {
                         format_table_row(&time, &entry, max_time_width, max_entry_width)
                     }));
-                    
                     formatted
-                },
-                ListType::Bullet => entries.into_iter()
-                    .map(|e| {
-                        if e.starts_with("| ") {
-                            let parts: Vec<&str> = e.split('|').collect();
-                            if parts.len() >= 3 {
-                                let time = parts[1].trim();
-                                let entry = parts[2].trim();
-                                if time.is_empty() {
-                                    format!("- {}", entry)
+                }
+                ListType::Bullet => {
+                    entries.into_iter()
+                        .filter_map(|e| {
+                            if e.starts_with("| ") {
+                                let parts: Vec<&str> = e.split('|').collect();
+                                if parts.len() >= 3 {
+                                    Some(format!("- {} {}", parts[1].trim(), parts[2].trim()))
                                 } else {
-                                    format!("- {} {}", time, entry)
+                                    None
                                 }
                             } else {
-                                format!("- {}", e.trim_start_matches(|c| c == '|').trim())
+                                Some(e)
                             }
-                        } else {
-                            e
-                        }
-                    })
-                    .collect(),
+                        })
+                        .collect()
+                }
             };
         }
 
         let before = lines[..start].join("\n") + "\n";
-        let after = lines[i..].join("\n");
+        let after = if i < lines.len() {
+            lines[i..].join("\n")
+        } else {
+            String::new()
+        };
+
         (before, after, entries, found_list_type)
     } else {
-        (content.to_string(), String::new(), vec![], ListType::Bullet)
+        (content.to_string(), String::new(), Vec::new(), ListType::Bullet)
     }
 }
 
@@ -169,6 +209,7 @@ mod tests {
             list_type: ListType::Bullet,
             template_path: None,
             locale: None,
+            time_format: TimeFormat::Hour24,
         }
     }
 
@@ -327,6 +368,105 @@ Some content
             "| 11:15 | Third entry |"
         ]);
         assert_eq!(found_type, ListType::Table);
+    }
+
+    #[test]
+    fn test_format_time_24h() {
+        let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
+        let formatted = format_time(time, &TimeFormat::Hour24);
+        assert_eq!(formatted, "14:30");
+    }
+
+    #[test]
+    fn test_format_time_12h() {
+        let test_cases = vec![
+            (0, 30, "12:30 AM"),
+            (1, 30, "01:30 AM"),
+            (11, 30, "11:30 AM"),
+            (12, 30, "12:30 PM"),
+            (13, 30, "01:30 PM"),
+            (23, 30, "11:30 PM"),
+        ];
+
+        for (hour, minute, expected) in test_cases {
+            let time = NaiveTime::from_hms_opt(hour, minute, 0).unwrap();
+            let formatted = format_time(time, &TimeFormat::Hour12);
+            assert_eq!(formatted, expected);
+        }
+    }
+
+    #[test]
+    fn test_parse_time() {
+        // Test 24-hour format
+        assert_eq!(
+            parse_time("14:30"),
+            Some(NaiveTime::from_hms_opt(14, 30, 0).unwrap())
+        );
+
+        // Test 12-hour format with various formats
+        let test_cases = vec![
+            "02:30 PM",
+            "02:30PM",
+            "02:30 pm",
+            "02:30pm",
+            "2:30 PM",
+            "2:30PM",
+        ];
+
+        for time_str in test_cases {
+            assert_eq!(
+                parse_time(time_str),
+                Some(NaiveTime::from_hms_opt(14, 30, 0).unwrap()),
+                "Failed to parse {}",
+                time_str
+            );
+        }
+
+        // Test invalid formats
+        assert_eq!(parse_time("not a time"), None);
+        assert_eq!(parse_time("25:00"), None);
+        assert_eq!(parse_time("14:60"), None);
+        assert_eq!(parse_time("02:30 MP"), None);
+    }
+
+    #[test]
+    fn test_extract_log_entries_with_time_formats() {
+        // Test with mixed 12/24 hour formats
+        let content = r#"# Header
+Some content
+
+## Test
+* 09:00 AM First entry
+* 14:30 Second entry
+* 02:15 PM Third entry
+
+## Another section"#;
+
+        let config = create_test_config();
+        
+        // Test with 24-hour format
+        let config_24h = Config {
+            time_format: TimeFormat::Hour24,
+            ..config.clone()
+        };
+        let (_, _, entries, _) = extract_log_entries(content, &config_24h.section_header, &config_24h.list_type);
+        assert_eq!(entries, vec![
+            "* 09:00 First entry",
+            "* 14:30 Second entry",
+            "* 14:15 Third entry"
+        ]);
+
+        // Test with 12-hour format
+        let config_12h = Config {
+            time_format: TimeFormat::Hour12,
+            ..config
+        };
+        let (_, _, entries, _) = extract_log_entries(content, &config_12h.section_header, &config_12h.list_type);
+        assert_eq!(entries, vec![
+            "* 09:00 AM First entry",
+            "* 02:30 PM Second entry",
+            "* 02:15 PM Third entry"
+        ]);
     }
 }
 

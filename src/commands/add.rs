@@ -1,7 +1,7 @@
 use chrono::{Local, Timelike, NaiveTime};
 use std::fs::{create_dir_all, read_to_string, write};
 use crate::config::{Config, ListType};
-use crate::utils::{get_log_path_for_date, extract_log_entries};
+use crate::utils::{get_log_path_for_date, extract_log_entries, format_time, parse_time};
 use crate::template::get_template_content;
 
 /// Format a table row with given widths for timestamp and entry columns
@@ -43,12 +43,12 @@ fn parse_bullet_entry(line: &str) -> Option<(String, String)> {
 
 pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config) {
     let time_str = args.next().unwrap_or_else(|| {
-        eprintln!("Error: -t/--time needs a timestamp with the format HH:mm");
+        eprintln!("Error: -t/--time needs a timestamp with the format HH:mm or HH:mm AM/PM");
         std::process::exit(1);
     });
 
-    let time_override = Some(NaiveTime::parse_from_str(&time_str, "%H:%M").unwrap_or_else(|_| {
-        eprintln!("Error: invalid timestamp '{}'. Use the format HH:mm.", time_str);
+    let time_override = Some(parse_time(&time_str).unwrap_or_else(|| {
+        eprintln!("Error: invalid timestamp '{}'. Use the format HH:mm or HH:mm AM/PM", time_str);
         std::process::exit(1);
     }));
 
@@ -72,7 +72,7 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
     let now = Local::now();
     let date = now.date_naive();
     let time = time_override.unwrap_or_else(|| NaiveTime::from_hms_opt(now.hour(), now.minute(), 0).unwrap());
-    let time_str = format!("{:02}:{:02}", time.hour(), time.minute());
+    let time_str = format_time(time, &config.time_format);
 
     let file_path = get_log_path_for_date(date, config);
     create_dir_all(file_path.parent().unwrap()).expect("Could not create log directory");
@@ -112,8 +112,12 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
     // Add the new entry
     parsed_entries.push((time_str, sentence));
 
-    // Sort entries by timestamp
-    parsed_entries.sort_by(|a, b| a.0.cmp(&b.0));
+    // Sort entries by timestamp (convert to NaiveTime for comparison)
+    parsed_entries.sort_by(|a, b| {
+        let time_a = parse_time(&a.0).unwrap_or_else(|| NaiveTime::from_hms_opt(0, 0, 0).unwrap());
+        let time_b = parse_time(&b.0).unwrap_or_else(|| NaiveTime::from_hms_opt(0, 0, 0).unwrap());
+        time_a.cmp(&time_b)
+    });
 
     // Format entries according to effective type
     let formatted_entries = match effective_type {
@@ -161,5 +165,98 @@ fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Opti
     write(&file_path, new_content.trim_end().to_string() + "\n").expect("Error writing logs to file");
 
     println!("Logged.");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+    use chrono::NaiveTime;
+
+    fn setup_test_env() -> (TempDir, Config) {
+        let temp_dir = TempDir::new().unwrap();
+        let config = Config {
+            vault: temp_dir.path().to_str().unwrap().to_string(),
+            file_path_format: "{date}.md".to_string(),
+            section_header: "## Test".to_string(),
+            list_type: ListType::Bullet,
+            template_path: None,
+            locale: None,
+            time_format: TimeFormat::Hour24,
+        };
+        (temp_dir, config)
+    }
+
+    #[test]
+    fn test_add_with_time_format() {
+        let (temp_dir, mut config) = setup_test_env();
+        let today = Local::now().date_naive();
+        let file_path = temp_dir.path().join(format!("{}.md", today));
+
+        // Test with 24-hour format
+        config.time_format = TimeFormat::Hour24;
+        let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
+        handle_plain_entry_with_time(vec!["Test entry".to_string()], Some(time), &config);
+
+        let content = fs::read_to_string(&file_path).unwrap();
+        assert!(content.contains("* 14:30 Test entry"));
+
+        // Test with 12-hour format
+        config.time_format = TimeFormat::Hour12;
+        let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
+        handle_plain_entry_with_time(vec!["Another test".to_string()], Some(time), &config);
+
+        let content = fs::read_to_string(&file_path).unwrap();
+        assert!(content.contains("* 02:30 PM Another test"));
+    }
+
+    #[test]
+    fn test_add_with_time_override() {
+        let (temp_dir, mut config) = setup_test_env();
+        let today = Local::now().date_naive();
+        let file_path = temp_dir.path().join(format!("{}.md", today));
+
+        // Test with 24-hour format and 12-hour time input
+        config.time_format = TimeFormat::Hour24;
+        let args = vec!["02:30".to_string(), "PM".to_string(), "Test".to_string(), "entry".to_string()];
+        handle_with_time(args.into_iter(), &config);
+
+        let content = fs::read_to_string(&file_path).unwrap();
+        assert!(content.contains("* 14:30 Test entry"));
+
+        // Test with 12-hour format and 24-hour time input
+        config.time_format = TimeFormat::Hour12;
+        let args = vec!["14:30".to_string(), "Another".to_string(), "test".to_string()];
+        handle_with_time(args.into_iter(), &config);
+
+        let content = fs::read_to_string(&file_path).unwrap();
+        assert!(content.contains("* 02:30 PM Another test"));
+    }
+
+    #[test]
+    fn test_add_with_table_format() {
+        let (temp_dir, mut config) = setup_test_env();
+        let today = Local::now().date_naive();
+        let file_path = temp_dir.path().join(format!("{}.md", today));
+
+        // Test with 24-hour format and table
+        config.time_format = TimeFormat::Hour24;
+        config.list_type = ListType::Table;
+        let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
+        handle_plain_entry_with_time(vec!["Test entry".to_string()], Some(time), &config);
+
+        let content = fs::read_to_string(&file_path).unwrap();
+        assert!(content.contains("| 14:30 | Test entry |"));
+
+        // Test with 12-hour format and table
+        config.time_format = TimeFormat::Hour12;
+        config.list_type = ListType::Table;
+        let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
+        handle_plain_entry_with_time(vec!["Another test".to_string()], Some(time), &config);
+
+        let content = fs::read_to_string(&file_path).unwrap();
+        assert!(content.contains("| 02:30 PM | Another test |"));
+    }
 }
 
