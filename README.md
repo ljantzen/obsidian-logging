@@ -78,6 +78,10 @@ Removes the last log entry (undo)
 
 Invokes $EDITOR with todays file.  Uses vim if $EDITOR is not set,
 
+### -f or --time-format 
+
+Specifies 12H or 24H time format.  24H is default.   Overrides `time_format` in obsidian-logging.yaml 
+
 ### -h or --help 
 
 Print command line argument help
