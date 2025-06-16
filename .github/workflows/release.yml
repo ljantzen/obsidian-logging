@@ -3,7 +3,9 @@ name: Release
 on:
   push:
     tags:
-      - 'v*'  # Trigger on version tag push like v1.0.0
+      # Trigger on version tag push like v1.0.0
+      - 'v*'
+  workflow_dispatch:
 
 jobs:
   release:
