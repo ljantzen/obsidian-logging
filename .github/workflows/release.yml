@@ -29,21 +29,23 @@ jobs:
       - name: Build binary
         run: cargo build --release
 
-      - name: Package binary
+      - name: Package binary (Windows)
+        if: runner.os == 'Windows'
         run: |
           mkdir -p dist
-          BIN_NAME="obsidian-logging"
-          OS_NAME=${{ runner.os }}
-          
-          if [[ "$OS_NAME" == "Windows" ]]; then
-            cp target/release/${BIN_NAME}.exe dist/${BIN_NAME}.exe
-            cd dist
-            powershell Compress-Archive -Path ${BIN_NAME}.exe -DestinationPath ${BIN_NAME}-${OS_NAME}.zip
-          else
-            cp target/release/${BIN_NAME} dist/${BIN_NAME}
-            cd dist
-            tar -czvf ${BIN_NAME}-${OS_NAME}.tar.gz ${BIN_NAME}
-          fi
+          cp target/release/obsidian-logging.exe dist/obsidian-logging.exe
+          cd dist
+          Compress-Archive -Path obsidian-logging.exe -DestinationPath obsidian-logging-windows-latest.zip
+        shell: pwsh
+
+      - name: Package binary (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          mkdir -p dist
+          cp target/release/obsidian-logging dist/obsidian-logging
+          cd dist
+          tar -czvf obsidian-logging-${{ runner.os }}.tar.gz obsidian-logging
+        shell: bash
 
       - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v2
