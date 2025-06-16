@@ -4,7 +4,7 @@ use crate::config::Config;
 use crate::utils::{get_log_path_for_date, extract_log_entries, parse_time, format_time};
 
 pub fn list_log_for_day(relative_day: i64, config: &Config) {
-    let date = Local::now().date_naive() + Duration::days(relative_day);
+    let date = Local::now().date_naive() - Duration::days(relative_day);
     let log_path = get_log_path_for_date(date, config);
 
     if !log_path.exists() {

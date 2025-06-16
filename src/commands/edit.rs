@@ -1,17 +1,17 @@
 use std::fs::{create_dir_all, write};
 use std::process::Command;
-use chrono::Local;
+use chrono::{Local, Duration};
 use crate::config::Config;
 use crate::utils::get_log_path_for_date;
 use crate::template::get_template_content;
 
-pub fn edit_today_log(config: &Config) {
-    let today = Local::now().date_naive();
-    let file_path = get_log_path_for_date(today, config);
+pub fn edit_log_for_day(relative_day: i64, config: &Config) {
+    let date = Local::now().date_naive() - Duration::days(relative_day);
+    let file_path = get_log_path_for_date(date, config);
     create_dir_all(file_path.parent().unwrap()).expect("Couldn't create parent directory");
 
-    // Make sure the file exists
-    if !file_path.exists() {
+    // Only create a new file if it's today or a future date
+    if !file_path.exists() && relative_day <= 0 {
         let template_content = get_template_content(config);
         write(&file_path, template_content).expect("Could not create log file from template");
     }

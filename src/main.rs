@@ -25,6 +25,7 @@ fn print_help() {
     eprintln!("  -l, --list               List today's entries");
     eprintln!("  -b <days>                List entries from <days> days ago");
     eprintln!("  -e, --edit               Edit today's file");
+    eprintln!("  -b <days> -e             Edit file from <days> days ago");
     eprintln!("  -h, --help               Show this help message");
     eprintln!("  -v, --version            Show version information");
     eprintln!("\nConfiguration:");
@@ -52,71 +53,74 @@ fn print_help() {
 fn main() {
     let mut config = initialize_config();
     let args: Vec<String> = env::args().collect();
+    
     let mut i = 1;
     let mut command = None;
     let mut command_args = Vec::new();
     let mut format_flags_processed = false;
+    let mut relative_day = 0;
 
-    // Single pass for all arguments
+    // First pass: process format flags
     while i < args.len() {
         let arg = &args[i];
-
-        // Process format flags only once at the beginning
-        if !format_flags_processed {
-            match arg.as_str() {
-                "-T" => {
-                    i += 1;
-                    if i < args.len() {
-                        let list_type = ListType::from_str(&args[i]).unwrap_or_else(|_| {
-                            eprintln!("Error: invalid list type '{}'. Use 'bullet' or 'table'", args[i]);
-                            std::process::exit(1);
-                        });
-                        config = config.with_list_type(list_type);
-                        i += 1;
-                        continue;
-                    } else {
-                        eprintln!("Error: -T needs an argument (bullet or table)");
-                        std::process::exit(1);
-                    }
-                },
-                "-f" => {
-                    i += 1;
-                    if i < args.len() {
-                        let time_format = TimeFormat::from_str(&args[i]).unwrap_or_else(|_| {
-                            eprintln!("Error: invalid time format '{}'. Use '12' or '24'", args[i]);
-                            std::process::exit(1);
-                        });
-                        config = config.with_time_format(time_format);
-                        i += 1;
-                        continue;
-                    } else {
-                        eprintln!("Error: -f needs an argument (12 or 24)");
-                        std::process::exit(1);
-                    }
-                },
-                _ => {
-                    format_flags_processed = true;
-                }
-            }
-        }
-
-        // After format flags, process the command
         match arg.as_str() {
+            "-T" => {
+                i += 1;
+                if i < args.len() {
+                    let list_type = ListType::from_str(&args[i]).unwrap_or_else(|_| {
+                        eprintln!("Error: invalid list type '{}'. Use 'bullet' or 'table'", args[i]);
+                        std::process::exit(1);
+                    });
+                    config = config.with_list_type(list_type);
+                    i += 1;
+                } else {
+                    eprintln!("Error: -T needs an argument (bullet or table)");
+                    std::process::exit(1);
+                }
+            },
+            "-f" => {
+                i += 1;
+                if i < args.len() {
+                    let time_format = TimeFormat::from_str(&args[i]).unwrap_or_else(|_| {
+                        eprintln!("Error: invalid time format '{}'. Use '12' or '24'", args[i]);
+                        std::process::exit(1);
+                    });
+                    config = config.with_time_format(time_format);
+                    i += 1;
+                } else {
+                    eprintln!("Error: -f needs an argument (12 or 24)");
+                    std::process::exit(1);
+                }
+            },
+            _ => break,
+        }
+    }
+
+    // Second pass: process command flags
+    i = 1;  // Reset to start after program name
+    while i < args.len() {
+        let arg = &args[i];
+        match arg.as_str() {
+            "-T" | "-f" => {
+                i += 2;  // Skip format flags and their arguments
+            },
+            "-e" | "--edit" => {
+                command = Some("edit");
+                i += 1;
+            },
             "-l" | "--list" => {
                 command = Some("list");
                 i += 1;
             },
             "-b" => {
-                command = Some("back");
                 i += 1;
                 if i < args.len() {
-                    command_args.push(args[i].clone());
+                    relative_day = args[i].parse().unwrap_or_else(|_| {
+                        eprintln!("Error: -b needs a numeric argument (eg -b 1 for yesterday)");
+                        std::process::exit(1);
+                    });
                     i += 1;
                 }
-            },
-            "-e" | "--edit" => {
-                command = Some("edit");
-                i += 1;
             },
             "-t" | "--time" => {
                 command = Some("time");
@@ -134,10 +138,6 @@ fn main() {
             "-v" | "--version" => {
                 println!("obsidian-logging version {}", env!("CARGO_PKG_VERSION"));
                 std::process::exit(0);
-            },
-            // Ignore already processed format flags
-            "-T" | "-f" => {
-                i += 2;
             },
             other => {
                 if command.is_none() {
@@ -162,12 +162,12 @@ fn main() {
 
     // Execute the command with the processed config
     match command {
-        Some("list") => list::list_log_for_day(0, &config),
+        Some("list") => list::list_log_for_day(relative_day, &config),
         Some("back") => {
             let mut args = command_args.into_iter();
             list::list_relative_day(&mut args, &config)
         },
-        Some("edit") => edit::edit_today_log(&config),
+        Some("edit") => edit::edit_log_for_day(relative_day, &config),
         Some("time") => {
             let args = command_args.into_iter();
             add::handle_with_time(args, &config)
@@ -178,7 +178,7 @@ fn main() {
                 add::handle_plain_entry(first, args, &config)
             }
         },
-        None => list::list_log_for_day(0, &config),
+        None => list::list_log_for_day(relative_day, &config),
         _ => unreachable!(),
     }
 }

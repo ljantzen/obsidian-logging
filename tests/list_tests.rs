@@ -97,4 +97,58 @@ fn test_list_with_table_format() {
     config.time_format = TimeFormat::Hour12;
     config.list_type = ListType::Table;
     list_log_for_day(0, &config);
+}
+
+#[test]
+fn test_list_past_date() {
+    let (temp_dir, config) = setup_test_env();
+    let two_days_ago = Local::now().date_naive() - Duration::days(2);
+    let file_path = temp_dir.path().join(format!("{}.md", two_days_ago));
+
+    // Create a test file
+    let content = r#"# Test
+## Test
+* 09:00 First entry
+* 14:30 Second entry
+"#;
+    fs::write(&file_path, content).unwrap();
+
+    // Test listing a past date
+    list_log_for_day(2, &config);
+    // Note: We can't easily test stdout directly, but the code is covered
+}
+
+#[test]
+fn test_list_future_date() {
+    let (temp_dir, config) = setup_test_env();
+    let tomorrow = Local::now().date_naive() + Duration::days(1);
+    let file_path = temp_dir.path().join(format!("{}.md", tomorrow));
+
+    // Create a test file
+    let content = r#"# Test
+## Test
+* 09:00 First entry
+* 14:30 Second entry
+"#;
+    fs::write(&file_path, content).unwrap();
+
+    // Test listing a future date
+    list_log_for_day(-1, &config);
+    // Note: We can't easily test stdout directly, but the code is covered
+}
+
+#[test]
+fn test_list_nonexistent_date() {
+    let (temp_dir, config) = setup_test_env();
+    let two_days_ago = Local::now().date_naive() - Duration::days(2);
+    let file_path = temp_dir.path().join(format!("{}.md", two_days_ago));
+
+    // Ensure the file doesn't exist
+    if file_path.exists() {
+        fs::remove_file(&file_path).unwrap();
+    }
+
+    // Test listing a non-existent date
+    list_log_for_day(2, &config);
+    // Note: We can't easily test stdout directly, but the code is covered
 } 
