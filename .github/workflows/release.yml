@@ -26,7 +26,7 @@ jobs:
       - name: Rename and move binary
         run: |
           mkdir dist
-          BIN_NAME="olog"  # Replace with your actual crate name
+          BIN_NAME="obsidian-logging"  
           OS_NAME=${{ runner.os }}
 
           if [[ "$OS_NAME" == "Windows" ]]; then
