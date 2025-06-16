@@ -29,25 +29,28 @@ jobs:
       - name: Build binary
         run: cargo build --release
 
-      - name: Rename and move binary
+      - name: Package binary
         run: |
-          mkdir dist
-          BIN_NAME="obsidian-logging"  
+          mkdir -p dist
+          BIN_NAME="obsidian-logging"
           OS_NAME=${{ runner.os }}
-
+          
           if [[ "$OS_NAME" == "Windows" ]]; then
-            cp target/release/${BIN_NAME}.exe dist/${BIN_NAME}-${OS_NAME}.exe
+            cp target/release/${BIN_NAME}.exe dist/${BIN_NAME}.exe
+            cd dist
+            powershell Compress-Archive -Path ${BIN_NAME}.exe -DestinationPath ${BIN_NAME}-${OS_NAME}.zip
           else
-            cp target/release/${BIN_NAME} dist/${BIN_NAME}-${OS_NAME}
+            cp target/release/${BIN_NAME} dist/${BIN_NAME}
+            cd dist
+            tar -czvf ${BIN_NAME}-${OS_NAME}.tar.gz ${BIN_NAME}
           fi
-        shell: bash
 
       - name: Create GitHub Release and Upload Assets
         uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
-          files: dist/*
+          files: dist/*.tar.gz dist/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
