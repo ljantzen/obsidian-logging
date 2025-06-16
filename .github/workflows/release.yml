@@ -7,6 +7,10 @@ on:
       - 'v*'
   workflow_dispatch:
 
+# Add permissions configuration
+permissions:
+  contents: write  # Required for creating releases and uploading assets
+
 jobs:
   release:
     name: Build and Release Binaries
