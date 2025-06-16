@@ -80,7 +80,7 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
         read_to_string(&file_path).unwrap_or_default()
     };
 
-    let (before_log, after_log, entries, detected_type) = extract_log_entries(&content, &config.section_header, &config.list_type);
+    let (before_log, after_log, entries, detected_type) = extract_log_entries(&content, &config.section_header, &config.list_type, config);
 
     // For new files, always use the config list type
     // For existing files, use detected type unless there are no entries
@@ -124,8 +124,8 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
         }
         ListType::Table => {
             // Calculate maximum widths
-            let mut max_time_width = "Tidspunkt".len();
-            let mut max_entry_width = "Hendelse".len();
+            let mut max_time_width = config.time_label.len();
+            let mut max_entry_width = config.event_label.len();
 
             for (time, entry) in &parsed_entries {
                 max_time_width = max_time_width.max(time.len());
@@ -135,8 +135,11 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
             // Format table
             let mut table = Vec::new();
             // Always show header for table format
-            table.push(format!("| Tidspunkt | Hendelse |"));
-            table.push(format!("| --------- | -------- |"));
+            table.push(format!("| {} | {} |", config.time_label, config.event_label));
+            table.push(format!("| {} | {} |", 
+                "-".repeat(max_time_width),
+                "-".repeat(max_entry_width)
+            ));
             table.extend(parsed_entries.into_iter().map(|(time, entry)| {
                 format!("| {} | {} |", time, entry)
             }));

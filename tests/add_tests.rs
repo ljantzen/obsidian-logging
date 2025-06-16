@@ -16,6 +16,8 @@ fn setup_test_env() -> (TempDir, Config) {
         template_path: None,
         locale: None,
         time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
     };
     (temp_dir, config)
 }
@@ -115,7 +117,7 @@ fn test_add_with_bullet_format() {
     
     // Read and verify content
     let content = read_to_string(&log_path).unwrap();
-    let (_, _, entries, _) = extract_log_entries(&content, &config.section_header, &config.list_type);
+    let (_, _, entries, _) = extract_log_entries(&content, &config.section_header, &config.list_type, &config);
     
     assert_eq!(entries.len(), 2);
     assert!(entries[0].contains("Second entry"));

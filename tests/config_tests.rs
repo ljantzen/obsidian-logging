@@ -97,6 +97,8 @@ fn test_load_config_existing() {
         template_path: None,
         locale: None,
         time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
     };
 
     let yaml = serde_yaml::to_string(&test_config).unwrap();
@@ -110,6 +112,8 @@ fn test_load_config_existing() {
     assert_eq!(test_config.template_path, loaded_config.template_path);
     assert_eq!(test_config.locale, loaded_config.locale);
     assert_eq!(test_config.time_format, loaded_config.time_format);
+    assert_eq!(test_config.time_label, loaded_config.time_label);
+    assert_eq!(test_config.event_label, loaded_config.event_label);
 }
 
 #[test]
@@ -146,6 +150,8 @@ fn test_config_serialization() {
         template_path: None,
         locale: None,
         time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
     };
 
     let serialized = serde_yaml::to_string(&config).unwrap();
@@ -158,6 +164,8 @@ fn test_config_serialization() {
     assert_eq!(config.template_path, deserialized.template_path);
     assert_eq!(config.locale, deserialized.locale);
     assert_eq!(config.time_format, deserialized.time_format);
+    assert_eq!(config.time_label, deserialized.time_label);
+    assert_eq!(config.event_label, deserialized.event_label);
 }
 
 #[test]
@@ -196,6 +204,8 @@ fn test_config_with_time_format() {
         template_path: None,
         locale: None,
         time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
     };
 
     let config_12h = config.with_time_format(TimeFormat::Hour12);
@@ -215,6 +225,8 @@ fn test_config_with_list_type() {
         template_path: None,
         locale: None,
         time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
     };
 
     let config_bullet = config.with_list_type(ListType::Bullet);

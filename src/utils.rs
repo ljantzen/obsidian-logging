@@ -107,7 +107,7 @@ fn parse_entry(entry: &str) -> (String, String) {
 /// Extract log entries from the log section 
 /// Returns ( content before log section, content after log section, list of log entries, and detected list type)
 /// Section heading retrieved from yaml config 
-pub fn extract_log_entries(content: &str, section_header: &str, list_type: &ListType) -> (String, String, Vec<String>, ListType) {
+pub fn extract_log_entries(content: &str, section_header: &str, list_type: &ListType, config: &Config) -> (String, String, Vec<String>, ListType) {
     let mut before = String::new();
     let mut after = String::new();
     let mut entries = Vec::new();
@@ -140,7 +140,7 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
                 }
 
                 // Skip table header and separator
-                if !trimmed.contains("---") && trimmed != "| Tidspunkt | Hendelse |" {
+                if !trimmed.contains("---") && trimmed != format!("| {} | {} |", config.time_label, config.event_label) {
                     entries.push(line.to_string());
                 }
             }
@@ -159,8 +159,8 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
         
         if *list_type == ListType::Table {
             // Convert from bullet to table
-            let mut max_time_width = "Tidspunkt".len();
-            let mut max_entry_width = "Hendelse".len();
+            let mut max_time_width = config.time_label.len();
+            let mut max_entry_width = config.event_label.len();
 
             // First pass: calculate widths
             for entry in &entries {
@@ -170,7 +170,7 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
             }
 
             // Add header
-            converted_entries.push(format_table_row("Tidspunkt", "Hendelse", max_time_width, max_entry_width));
+            converted_entries.push(format_table_row(&config.time_label, &config.event_label, max_time_width, max_entry_width));
             converted_entries.push(format_table_separator(max_time_width, max_entry_width));
 
             // Second pass: format entries

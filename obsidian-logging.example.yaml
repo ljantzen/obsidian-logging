@@ -17,3 +17,10 @@ time_format: 24
 #   locale: fr_FR    # French
 #   locale: es_ES    # Spanish
 # If not specified or invalid, falls back to English
+# Optional: Customize table column labels
+# Examples:
+#   time_label: Time      # English
+#   event_label: Event    # English
+#   time_label: Tidspunkt # Norwegian
+#   event_label: Hendelse # Norwegian
+# If not specified, defaults to Norwegian labels

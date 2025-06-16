@@ -76,6 +76,8 @@ fn test_get_template_content_with_template() {
         template_path: Some("non-existent-template.md".to_string()),
         locale: None,
         time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
     };
 
     let content = get_template_content(&config);
@@ -93,6 +95,8 @@ fn test_get_template_content_no_template() {
         template_path: None,
         locale: None,
         time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
     };
 
     let content = get_template_content(&config);

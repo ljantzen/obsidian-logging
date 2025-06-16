@@ -18,13 +18,15 @@ fn setup_test_env() -> (PathBuf, Config) {
 
     // Create a basic config
     let config = Config {
-        vault: "/test/vault".to_string(),
-        file_path_format: "test/{year}/{month}/{date}.md".to_string(),
+        vault: temp_dir.path().to_str().unwrap().to_string(),
+        file_path_format: "{date}.md".to_string(),
         section_header: "## Test".to_string(),
         list_type: ListType::Bullet,
         template_path: None,
         locale: None,
         time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
     };
 
     (config_dir, config)

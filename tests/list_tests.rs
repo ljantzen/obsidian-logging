@@ -14,6 +14,8 @@ fn setup_test_env() -> (TempDir, Config) {
         template_path: None,
         locale: None,
         time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
     };
     (temp_dir, config)
 }

@@ -114,10 +114,22 @@ pub struct Config {
     pub locale: Option<String>,
     #[serde(default = "default_time_format")]
     pub time_format: TimeFormat,
+    #[serde(default = "default_time_label")]
+    pub time_label: String,
+    #[serde(default = "default_event_label")]
+    pub event_label: String,
 }
 
 fn default_time_format() -> TimeFormat {
     TimeFormat::Hour24
+}
+
+fn default_time_label() -> String {
+    "Tidspunkt".to_string()
+}
+
+fn default_event_label() -> String {
+    "Hendelse".to_string()
 }
 
 impl Default for Config {
@@ -136,6 +148,8 @@ impl Default for Config {
             template_path: None,
             locale: None,
             time_format: TimeFormat::Hour24,
+            time_label: default_time_label(),
+            event_label: default_event_label(),
         }
     }
 }
