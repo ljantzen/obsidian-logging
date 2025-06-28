@@ -22,7 +22,7 @@ cd obsidian-logging
 cargo build --release
 ```
 
-The binary will be available at `target/release/obsidian-logging`.
+Or download binaries directly from the [github releases page](https://github.com/ljantzen/obsidian-logging/releases).
 
 
 ## Tip
@@ -30,8 +30,9 @@ The binary will be available at `target/release/obsidian-logging`.
 Since obsidian-logging is quite a mouthful to type every time, it is recommended to create a short alias.  E.g
 
 ```
-alias q=`obsidian-logging`
+alias q=` obsidian-logging`
 ```
+(Note: the space before the program name stops the commaand from being entered into command history)
 
 On Windows, the `doskey` command can be used to create a macro: 
 
@@ -41,7 +42,7 @@ doskey q=obsidian-logging
 
 ## Environment variable
 
-Obsidian-logging expects the environment variable $OBSIDIAN_VAULT_DIR to be defined and point to the top level directory of the vault. 
+If the environment variable $OBSIDIAN_VAULT_DIR has a value it is expected to poiny to the top level directory of the vault. If specified, it will override the value in obsidian-logging.yaml 
 
 ## Configuration file
 
@@ -69,10 +70,6 @@ You can list the current days log entries by specifying the -l option.  If obsid
 ### -b <days> or --back <days>
 
 By specifying `-b <number>` you can go back in time and list the logs `number` of days ago. `obsidian-logging -b 0` is the same as `obsidian-logging -l`
-
-### -u or --undo 
-
-Removes the last log entry (undo)
 
 ### -e or --edit
 
