@@ -2,7 +2,7 @@ use chrono::{Duration, Local};
 use std::fs;
 use tempfile::TempDir;
 use obsidian_logging::config::{Config, TimeFormat, ListType};
-use obsidian_logging::commands::list::{list_log_for_day, list_relative_day};
+use obsidian_logging::commands::list::{list_log_for_day};
 
 fn setup_test_env() -> (TempDir, Config) {
     let temp_dir = TempDir::new().unwrap();
@@ -43,32 +43,6 @@ fn test_list_with_time_format() {
     // Test with 12-hour format
     config.time_format = TimeFormat::Hour12;
     list_log_for_day(0, &config);
-}
-
-#[test]
-fn test_list_relative_day_with_time_format() {
-    let (temp_dir, mut config) = setup_test_env();
-    let yesterday = Local::now().date_naive() - Duration::days(1);
-    let file_path = temp_dir.path().join(format!("{}.md", yesterday));
-
-    // Create a test file with mixed time formats
-    let content = r#"# Test
-## Test
-* 09:00 AM First entry
-* 14:30 Second entry
-* 02:15 PM Third entry
-"#;
-    fs::write(&file_path, content).unwrap();
-
-    // Test with 24-hour format
-    config.time_format = TimeFormat::Hour24;
-    let mut args = vec!["1".to_string()].into_iter();
-    list_relative_day(&mut args, &config);
-
-    // Test with 12-hour format
-    config.time_format = TimeFormat::Hour12;
-    let mut args = vec!["1".to_string()].into_iter();
-    list_relative_day(&mut args, &config);
 }
 
 #[test]

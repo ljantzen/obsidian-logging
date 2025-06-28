@@ -24,7 +24,7 @@ fn setup_test_env() -> (TempDir, Config) {
 
 #[test]
 fn test_edit_today() {
-    let (temp_dir, config) = setup_test_env();
+    let ( _temp_dir, config) = setup_test_env();
     let today = Local::now().date_naive();
     let file_path = get_log_path_for_date(today, &config);
 
@@ -55,7 +55,7 @@ fn test_edit_today() {
 
 #[test]
 fn test_edit_relative_day() {
-    let (temp_dir, config) = setup_test_env();
+    let (_temp_dir, config) = setup_test_env();
     let yesterday = Local::now().date_naive() - Duration::days(1);
     let file_path = get_log_path_for_date(yesterday, &config);
 
@@ -86,7 +86,7 @@ fn test_edit_relative_day() {
 
 #[test]
 fn test_edit_nonexistent_file() {
-    let (temp_dir, config) = setup_test_env();
+    let (_temp_dir, config) = setup_test_env();
     let tomorrow = Local::now().date_naive() + Duration::days(1);
     let file_path = get_log_path_for_date(tomorrow, &config);
 
@@ -109,7 +109,7 @@ fn test_edit_nonexistent_file() {
 
 #[test]
 fn test_edit_past_date_does_not_create_file() {
-    let (temp_dir, config) = setup_test_env();
+    let (_temp_dir, config) = setup_test_env();
     let two_days_ago = Local::now().date_naive() - Duration::days(2);
     let file_path = get_log_path_for_date(two_days_ago, &config);
 
@@ -130,7 +130,7 @@ fn test_edit_past_date_does_not_create_file() {
 
 #[test]
 fn test_edit_future_date_creates_file() {
-    let (temp_dir, config) = setup_test_env();
+    let (_temp_dir, config) = setup_test_env();
     let tomorrow = Local::now().date_naive() + Duration::days(1);
     let file_path = get_log_path_for_date(tomorrow, &config);
 
