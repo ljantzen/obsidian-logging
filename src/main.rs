@@ -1,185 +1,143 @@
-mod config;
-mod utils;
 mod commands;
+mod config;
 mod template;
+mod utils;
 
-use std::env;
-use std::str::FromStr;
-use config::{initialize_config, ListType, TimeFormat};
+use clap::{Parser, ValueEnum};
 use commands::{add, edit, list};
+use config::{initialize_config, ListType, TimeFormat};
 
-fn print_help() {
-    eprintln!("obsidian-logging [options] [log entry]");
-    eprintln!("\nUsage:");
-    eprintln!("  obsidian-logging             List today's entries");
-    eprintln!("  obsidian-logging <log entry> Add a new log entry");
-    eprintln!();
-    eprintln!("\nOptions:");
-    eprintln!();
-    eprintln!("-T and/or -f must come before any other options");
-    eprintln!();
-    eprintln!("  -T <list-type>           Override list type (bullet or table)");
-    eprintln!("  -f <time-format>         Override time format (12 or 24)");
-    eprintln!();
-    eprintln!("  -t, --time hh:mm         Override timestamp for the entry");
-    eprintln!("  -l, --list               List today's entries");
-    eprintln!("  -b <days>                List entries from <days> days ago");
-    eprintln!("  -e, --edit               Edit today's file");
-    eprintln!("  -b <days> -e             Edit file from <days> days ago");
-    eprintln!("  -h, --help               Show this help message");
-    eprintln!("  -v, --version            Show version information");
-    eprintln!("\nConfiguration:");
-    if cfg!(windows) {
-        eprintln!("  Location: %APPDATA%\\obsidian-logging\\obsidian-logging.yaml");
-    } else {
-        eprintln!("  Location: ~/.config/obsidian-logging/obsidian-logging.yaml");
+#[derive(Parser)]
+#[command(
+    name = "obsidian-logging",
+    version = env!("CARGO_PKG_VERSION"),
+    about = "A journaling/logging CLI that stores logs in Obsidian markdown files",
+    long_about = "obsidian-logging is a command-line tool for creating and managing log entries in Obsidian markdown files. It supports various formats and can be configured through a YAML configuration file.
+
+USAGE EXAMPLES:
+  obsidian-logging                    # List today's entries
+  obsidian-logging <log entry>       # Add a new log entry
+  obsidian-logging -t 14:30 <entry>  # Add entry with specific time
+  obsidian-logging -l                # List today's entries
+  obsidian-logging -b 1              # List entries from 1 day ago
+  obsidian-logging -e                # Edit today's file
+  obsidian-logging -b 1 -e           # Edit file from 1 day ago
+  obsidian-logging -T table -l       # List in table format
+  obsidian-logging -f 12 -t 2:30 PM  # Use 12-hour format with time
+
+CONFIGURATION:
+  Configuration file location:
+    Linux/macOS: ~/.config/obsidian-logging/obsidian-logging.yaml
+    Windows: %APPDATA%\\obsidian-logging\\obsidian-logging.yaml
+
+  Environment variable: $OBSIDIAN_VAULT_DIR (overrides vault setting in config)
+
+TEMPLATE VARIABLES:
+  {today}      Current date (YYYY-MM-DD)
+  {yesterday}  Yesterday's date
+  {tomorrow}   Tomorrow's date
+  {weekday}    Localized weekday name
+  {created}    Creation timestamp (YYYY-MM-DD HH:mm)"
+)]
+struct Cli {
+    /// Override list type (bullet or table)
+    #[arg(short = 'T', value_enum, help = "Override list type: bullet or table")]
+    list_type: Option<ListTypeArg>,
+    
+    /// Override time format (12 or 24)
+    #[arg(short = 'f', value_enum, help = "Override time format: 12 or 24")]
+    time_format: Option<TimeFormatArg>,
+    
+    /// Override timestamp for the entry (format: hh:mm or hh:mm AM/PM)
+    #[arg(short, long, help = "Override timestamp (e.g., 14:30 or 2:30 PM)")]
+    time: Option<String>,
+    
+    /// List entries from specified days ago
+    #[arg(short = 'b', default_value = "0", help = "Days ago (0 = today, 1 = yesterday, etc.)")]
+    days_ago: i64,
+    
+    /// Edit today's file or file from specified days ago
+    #[arg(short, long, help = "Open file in $EDITOR (defaults to vim)")]
+    edit: bool,
+    
+    /// List today's entries
+    #[arg(short, long, help = "List entries (default action when no entry provided)")]
+    list: bool,
+    
+    /// The log entry text to add
+    #[arg(trailing_var_arg = true, help = "Log entry text (if not provided, lists entries)")]
+    entry: Vec<String>,
+}
+
+#[derive(ValueEnum, Clone)]
+enum ListTypeArg {
+    Bullet,
+    Table,
+}
+
+#[derive(ValueEnum, Clone)]
+enum TimeFormatArg {
+    #[value(name = "12")]
+    Hour12,
+    #[value(name = "24")]
+    Hour24,
+}
+
+impl From<ListTypeArg> for ListType {
+    fn from(arg: ListTypeArg) -> Self {
+        match arg {
+            ListTypeArg::Bullet => ListType::Bullet,
+            ListTypeArg::Table => ListType::Table,
+        }
     }
-    eprintln!("  vault:            Path to Obsidian vault, overrides $OBSIDIAN_VAULT_DIR");
-    eprintln!("  file_path_format: Format for daily note directory path");
-    eprintln!("  section_header:   Marker for log entries section");
-    eprintln!("  list_type:        Default list format (bullet or table)");
-    eprintln!("  time_format:      Default time format (12 or 24)");
-    eprintln!("  template_path:    Path to template file");
-    eprintln!("  locale:           Locale for weekday names (e.g., en_US, nb_NO)");
-    eprintln!("\nTemplate Variables:");
-    eprintln!("  {{today}}          Current date (YYYY-MM-DD)");
-    eprintln!("  {{yesterday}}      Yesterday's date");
-    eprintln!("  {{tomorrow}}       Tomorrow's date");
-    eprintln!("  {{weekday}}        Localized weekday name");
-    eprintln!("  {{created}}        Creation timestamp (YYYY-MM-DD HH:mm)");
-    std::process::exit(1);
+}
+
+impl From<TimeFormatArg> for TimeFormat {
+    fn from(arg: TimeFormatArg) -> Self {
+        match arg {
+            TimeFormatArg::Hour12 => TimeFormat::Hour12,
+            TimeFormatArg::Hour24 => TimeFormat::Hour24,
+        }
+    }
 }
 
 fn main() {
-    let mut config = initialize_config();
-    let args: Vec<String> = env::args().collect();
+    let cli = Cli::parse();
     
-    let mut i = 1;
-    let mut command = None;
-    let mut command_args = Vec::new();
-    let mut format_flags_processed = false;
-    let mut relative_day = 0;
-
-    // First pass: process format flags
-    while i < args.len() {
-        let arg = &args[i];
-        match arg.as_str() {
-            "-T" => {
-                i += 1;
-                if i < args.len() {
-                    let list_type = ListType::from_str(&args[i]).unwrap_or_else(|_| {
-                        eprintln!("Error: invalid list type '{}'. Use 'bullet' or 'table'", args[i]);
-                        std::process::exit(1);
-                    });
-                    config = config.with_list_type(list_type);
-                    i += 1;
-                } else {
-                    eprintln!("Error: -T needs an argument (bullet or table)");
-                    std::process::exit(1);
-                }
-            },
-            "-f" => {
-                i += 1;
-                if i < args.len() {
-                    let time_format = TimeFormat::from_str(&args[i]).unwrap_or_else(|_| {
-                        eprintln!("Error: invalid time format '{}'. Use '12' or '24'", args[i]);
-                        std::process::exit(1);
-                    });
-                    config = config.with_time_format(time_format);
-                    i += 1;
-                } else {
-                    eprintln!("Error: -f needs an argument (12 or 24)");
-                    std::process::exit(1);
-                }
-            },
-            _ => break,
-        }
+    let mut config = initialize_config();
+    
+    // Apply format overrides if specified
+    if let Some(list_type) = cli.list_type {
+        config = config.with_list_type(list_type.into());
     }
-
-    // Second pass: process command flags
-    i = 1;  // Reset to start after program name
-    while i < args.len() {
-        let arg = &args[i];
-        match arg.as_str() {
-            "-T" | "-f" => {
-                i += 2;  // Skip format flags and their arguments
-            },
-            "-e" | "--edit" => {
-                command = Some("edit");
-                i += 1;
-            },
-            "-l" | "--list" => {
-                command = Some("list");
-                i += 1;
-            },
-            "-b" => {
-                i += 1;
-                if i < args.len() {
-                    relative_day = args[i].parse().unwrap_or_else(|_| {
-                        eprintln!("Error: -b needs a numeric argument (eg -b 1 for yesterday)");
-                        std::process::exit(1);
-                    });
-                    i += 1;
-                }
-            },
-            "-t" | "--time" => {
-                command = Some("time");
-                i += 1;
-                while i < args.len() {
-                    command_args.push(args[i].clone());
-                    i += 1;
-                }
-                break;
-            },
-            "-h" | "--help" => {
-                print_help();
-                std::process::exit(0);
-            },
-            "-v" | "--version" => {
-                println!("obsidian-logging version {}", env!("CARGO_PKG_VERSION"));
-                std::process::exit(0);
-            },
-            other => {
-                if command.is_none() {
-                    command = Some("add");
-                }
-                command_args.push(other.to_string());
-                i += 1;
-                while i < args.len() {
-                    // Stop collecting args if a flag is found
-                    if args[i].starts_with('-') {
-                        break;
-                    }
-                    command_args.push(args[i].clone());
-                    i += 1;
-                }
-                if command == Some("add") {
-                    break;
-                }
-            },
-        }
+    
+    if let Some(time_format) = cli.time_format {
+        config = config.with_time_format(time_format.into());
     }
-
-    // Execute the command with the processed config
-    match command {
-        Some("list") => list::list_log_for_day(relative_day, &config),
-        Some("back") => {
-            let mut args = command_args.into_iter();
-            list::list_relative_day(&mut args, &config)
-        },
-        Some("edit") => edit::edit_log_for_day(relative_day, &config),
-        Some("time") => {
-            let args = command_args.into_iter();
-            add::handle_with_time(args, &config)
-        },
-        Some("add") => {
-            let mut args = command_args.into_iter();
-            if let Some(first) = args.next() {
-                add::handle_plain_entry(first, args, &config)
+    
+    // Determine the command to execute
+    if cli.edit {
+        // Edit command
+        edit::edit_log_for_day(cli.days_ago, &config);
+    } else if cli.list {
+        // List command
+        list::list_log_for_day(cli.days_ago, &config);
+    } else if !cli.entry.is_empty() {
+        // Add entry command
+        let mut args = cli.entry.into_iter();
+        if let Some(first) = args.next() {
+            if let Some(time) = cli.time {
+                // Handle with specific time
+                let mut time_args = vec![time];
+                time_args.extend(args);
+                add::handle_with_time(time_args.into_iter(), &config);
+            } else {
+                // Handle plain entry
+                add::handle_plain_entry(first, args, &config);
             }
-        },
-        None => list::list_log_for_day(relative_day, &config),
-        _ => unreachable!(),
+        }
+    } else {
+        // Default: list today's entries
+        list::list_log_for_day(cli.days_ago, &config);
     }
 }
-
