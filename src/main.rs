@@ -65,7 +65,7 @@ struct Cli {
     list: bool,
     
     /// The log entry text to add
-    #[arg(trailing_var_arg = true, help = "Log entry text (if not provided, lists entries)")]
+    #[arg(help = "Log entry text (if not provided, lists entries)")]
     entry: Vec<String>,
 }
 
