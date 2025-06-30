@@ -134,7 +134,7 @@ fn default_event_label() -> String {
 
 impl Default for Config {
     fn default() -> Self {
-        let vault_dir = env::var("OBSIDIAN_VAULT").unwrap_or_else(|_| "".to_string());
+        let vault_dir = env::var("OBSIDIAN_VAULT_DIR").unwrap_or_else(|_| "".to_string());
         
         Config {
             vault: vault_dir,
@@ -166,6 +166,29 @@ impl Config {
         config.time_format = time_format;
         config
     }
+
+    pub fn initialize() -> Config {
+        let config_dir = get_config_dir();
+        let config_path = config_dir.join("obsidian-logging.yaml");
+
+        // Try to read config file
+        let mut config = if let Ok(config_str) = fs::read_to_string(&config_path) {
+            if let Ok(config) = serde_yaml::from_str(&config_str) {
+                config
+            } else {
+                Config::default()
+            }
+        } else {
+            Config::default()
+        };
+
+        // Override vault setting with environment variable if set
+        if let Ok(vault_dir) = env::var("OBSIDIAN_VAULT_DIR") {
+            config.vault = vault_dir;
+        }
+
+        config
+    }
 }
 
 fn get_config_dir() -> PathBuf {
@@ -178,20 +201,5 @@ fn get_config_dir() -> PathBuf {
         let home = env::var("HOME").expect("HOME environment variable not set");
         PathBuf::from(home).join(".config").join("obsidian-logging")
     }
-}
-
-pub fn initialize_config() -> Config {
-    let config_dir = get_config_dir();
-    let config_path = config_dir.join("obsidian-logging.yaml");
-
-    // Try to read config file
-    if let Ok(config_str) = fs::read_to_string(&config_path) {
-        if let Ok(config) = serde_yaml::from_str(&config_str) {
-            return config;
-        }
-    }
-
-    // Fall back to default config
-    Config::default()
 }
 

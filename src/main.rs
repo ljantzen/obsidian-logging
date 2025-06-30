@@ -1,11 +1,6 @@
-mod commands;
-mod config;
-mod template;
-mod utils;
-
 use clap::{Parser, ValueEnum};
-use commands::{add, edit, list};
-use config::{initialize_config, ListType, TimeFormat};
+use obsidian_logging::{Config, ListType, TimeFormat, add, edit, list};
+use std::env;
 
 #[derive(Parser)]
 #[command(
@@ -104,7 +99,7 @@ impl From<TimeFormatArg> for TimeFormat {
 fn main() {
     let cli = Cli::parse();
     
-    let mut config = initialize_config();
+    let mut config = Config::initialize();
     
     // Apply format overrides if specified
     if let Some(list_type) = cli.list_type {
@@ -124,15 +119,15 @@ fn main() {
         list::list_log_for_day(cli.days_ago, &config);
     } else if !cli.entry.is_empty() {
         // Add entry command
-        let mut args = cli.entry.into_iter();
-        if let Some(first) = args.next() {
-            if let Some(time) = cli.time {
-                // Handle with specific time
-                let mut time_args = vec![time];
-                time_args.extend(args);
-                add::handle_with_time(time_args.into_iter(), &config);
-            } else {
-                // Handle plain entry
+        if let Some(time) = cli.time {
+            // Handle with specific time - include all entry words
+            let mut time_args = vec![time];
+            time_args.extend(cli.entry);
+            add::handle_with_time(time_args.into_iter(), &config);
+        } else {
+            // Handle plain entry
+            let mut args = cli.entry.into_iter();
+            if let Some(first) = args.next() {
                 add::handle_plain_entry(first, args, &config);
             }
         }

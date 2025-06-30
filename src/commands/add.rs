@@ -39,6 +39,13 @@ pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config) {
                 sentence_parts.extend(args);
                 handle_plain_entry_with_time(sentence_parts, Some(time), config);
                 return;
+            } else {
+                // If time parsing failed with AM/PM, treat both as part of the sentence
+                sentence_parts.push(time_str);
+                sentence_parts.push(next_word);
+                sentence_parts.extend(args);
+                handle_plain_entry_with_time(sentence_parts, None, config);
+                return;
             }
         } else {
             sentence_parts.push(next_word);

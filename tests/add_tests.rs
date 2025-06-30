@@ -122,4 +122,19 @@ fn test_add_with_bullet_format() {
     assert_eq!(entries.len(), 2);
     assert!(entries[0].contains("Second entry"));
     assert!(entries[1].contains("First entry"));
+}
+
+#[test]
+fn test_add_with_invalid_time_does_not_lose_first_word() {
+    let (temp_dir, config) = setup_test_env();
+    let today = Local::now().date_naive();
+    let file_path = temp_dir.path().join(format!("{}.md", today));
+
+    // Test with invalid time that should be treated as part of the sentence
+    let args = vec!["invalid_time".to_string(), "This".to_string(), "is".to_string(), "a".to_string(), "test".to_string()];
+    handle_with_time(args.into_iter(), &config);
+
+    let content = fs::read_to_string(&file_path).unwrap();
+    // Should contain the full sentence including the invalid time
+    assert!(content.contains("invalid_time This is a test"));
 } 

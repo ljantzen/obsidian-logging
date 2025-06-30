@@ -5,7 +5,8 @@ use std::str::FromStr;
 use std::sync::{Once, Mutex};
 use lazy_static::lazy_static;
 use tempfile::TempDir;
-use obsidian_logging::config::{Config, ListType, TimeFormat, initialize_config};
+use obsidian_logging::config::{Config, ListType, TimeFormat};
+use serial_test::serial;
 
 static INIT: Once = Once::new();
 
@@ -32,7 +33,7 @@ fn setup_test_env() -> PathBuf {
             } else {
                 env::set_var("HOME", config_dir_str);
             }
-            env::remove_var("OBSIDIAN_VAULT");
+            env::remove_var("OBSIDIAN_VAULT_DIR");
         }
     });
 
@@ -70,7 +71,9 @@ fn test_get_config_dir() {
 }
 
 #[test]
+#[serial]
 fn test_load_config_default() {
+    env::remove_var("OBSIDIAN_VAULT_DIR");
     let _config_dir = setup_test_env();
     
     // Test loading when config doesn't exist
@@ -80,7 +83,9 @@ fn test_load_config_default() {
 }
 
 #[test]
+#[serial]
 fn test_load_config_existing() {
+    env::remove_var("OBSIDIAN_VAULT_DIR");
     let config_dir = setup_test_env();
     let config_path = if cfg!(windows) {
         config_dir.join("obsidian-logging").join("obsidian-logging.yaml")
@@ -88,6 +93,9 @@ fn test_load_config_existing() {
         config_dir.join(".config").join("obsidian-logging").join("obsidian-logging.yaml")
     };
     fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+
+    // Ensure environment variable is not set for this test
+    env::remove_var("OBSIDIAN_VAULT_DIR");
 
     let test_config = Config {
         vault: "/test/vault".to_string(),
@@ -104,7 +112,7 @@ fn test_load_config_existing() {
     let yaml = serde_yaml::to_string(&test_config).unwrap();
     fs::write(&config_path, yaml).unwrap();
 
-    let loaded_config = initialize_config();
+    let loaded_config = Config::initialize();
     assert_eq!(test_config.vault, loaded_config.vault);
     assert_eq!(test_config.file_path_format, loaded_config.file_path_format);
     assert_eq!(test_config.section_header, loaded_config.section_header);
@@ -113,7 +121,7 @@ fn test_load_config_existing() {
     assert_eq!(test_config.locale, loaded_config.locale);
     assert_eq!(test_config.time_format, loaded_config.time_format);
     assert_eq!(test_config.time_label, loaded_config.time_label);
-    assert_eq!(test_config.event_label, loaded_config.event_label);
+    assert_eq!(loaded_config.event_label, test_config.event_label);
 }
 
 #[test]
@@ -234,4 +242,51 @@ fn test_config_with_list_type() {
 
     let config_table = config.with_list_type(ListType::Table);
     assert_eq!(config_table.list_type, ListType::Table);
+}
+
+#[test]
+#[serial]
+fn test_environment_variable_overrides_config() {
+    let config_dir = setup_test_env();
+    let config_path = if cfg!(windows) {
+        config_dir.join("obsidian-logging").join("obsidian-logging.yaml")
+    } else {
+        config_dir.join(".config").join("obsidian-logging").join("obsidian-logging.yaml")
+    };
+    fs::create_dir_all(config_path.parent().unwrap()).unwrap();
+
+    // Create a config file with a specific vault path
+    let test_config = Config {
+        vault: "/config/vault".to_string(),
+        file_path_format: "test/{year}/{month}/{date}.md".to_string(),
+        section_header: "## Test".to_string(),
+        list_type: ListType::Bullet,
+        template_path: None,
+        locale: None,
+        time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
+    };
+
+    let yaml = serde_yaml::to_string(&test_config).unwrap();
+    fs::write(&config_path, yaml).unwrap();
+
+    // Set environment variable to override the config (after setup_test_env)
+    env::set_var("OBSIDIAN_VAULT_DIR", "/env/vault");
+    assert_eq!(env::var("OBSIDIAN_VAULT_DIR").unwrap(), "/env/vault");
+
+    // Load config - should use environment variable value
+    let loaded_config = Config::initialize();
+    assert_eq!(loaded_config.vault, "/env/vault");
+    assert_eq!(loaded_config.file_path_format, test_config.file_path_format);
+    assert_eq!(loaded_config.section_header, test_config.section_header);
+    assert_eq!(loaded_config.list_type, test_config.list_type);
+    assert_eq!(loaded_config.template_path, test_config.template_path);
+    assert_eq!(loaded_config.locale, test_config.locale);
+    assert_eq!(loaded_config.time_format, test_config.time_format);
+    assert_eq!(loaded_config.time_label, test_config.time_label);
+    assert_eq!(loaded_config.event_label, test_config.event_label);
+
+    // Clean up
+    env::remove_var("OBSIDIAN_VAULT_DIR");
 } 

@@ -3,6 +3,11 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tempfile::TempDir;
 use obsidian_logging::config::{Config, ListType, TimeFormat};
+use assert_cmd::prelude::*;
+use std::process::Command;
+use std::fs;
+use chrono::Datelike;
+use serde_yaml;
 
 fn setup_test_env() -> (PathBuf, Config) {
     let temp_dir = TempDir::new().unwrap();
@@ -14,10 +19,17 @@ fn setup_test_env() -> (PathBuf, Config) {
     } else {
         env::set_var("HOME", config_dir.to_str().unwrap().to_owned());
     }
-    env::remove_var("OBSIDIAN_VAULT");
+    env::set_var("OBSIDIAN_VAULT_DIR", temp_dir.path().to_str().unwrap());
 
-    // Create a basic config
-    let config = Config {
+    // Create a temporary config file to prevent reading the real config
+    let config_dir_path = if cfg!(windows) {
+        config_dir.join("obsidian-logging")
+    } else {
+        config_dir.join(".config").join("obsidian-logging")
+    };
+    fs::create_dir_all(&config_dir_path).unwrap();
+    
+    let test_config = Config {
         vault: temp_dir.path().to_str().unwrap().to_string(),
         file_path_format: "{date}.md".to_string(),
         section_header: "## Test".to_string(),
@@ -28,8 +40,12 @@ fn setup_test_env() -> (PathBuf, Config) {
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
     };
+    
+    let config_path = config_dir_path.join("obsidian-logging.yaml");
+    let yaml = serde_yaml::to_string(&test_config).unwrap();
+    fs::write(&config_path, yaml).unwrap();
 
-    (config_dir, config)
+    (config_dir, test_config)
 }
 
 #[test]
@@ -123,4 +139,37 @@ fn test_time_format_with_back_flag() {
     assert_eq!(config.time_format, TimeFormat::Hour12);
     assert_eq!(command, Some("back"));
     assert_eq!(command_args, vec!["4"]);
+}
+
+#[test]
+fn test_time_option_preserves_all_words() {
+    let (temp_dir, _config) = setup_test_env();
+    
+    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    cmd.env("OBSIDIAN_VAULT_DIR", &temp_dir);
+    let output = cmd
+        .args(["--time", "14:30", "This", "is", "a", "test", "entry"])
+        .output()
+        .unwrap();
+    
+    assert!(output.status.success());
+    
+    // Check that the file was created and contains the full entry
+    let today = chrono::Local::now().date_naive();
+    let year = today.year();
+    let month = today.month();
+    let day = today.day();
+    
+    // Use the default file path format from config
+    let file_path = temp_dir
+        .join("10-Journal")
+        .join(year.to_string())
+        .join(format!("{:02}", month))
+        .join(format!("{}-{:02}-{:02}.md", year, month, day));
+    
+    assert!(file_path.exists());
+    let content = fs::read_to_string(&file_path).unwrap();
+    
+    // Should contain the full sentence with the specified time
+    assert!(content.contains("14:30 This is a test entry"));
 } 
