@@ -165,7 +165,13 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
             // First pass: calculate widths
             for entry in &entries {
                 let (time, text) = parse_entry(entry);
-                max_time_width = max_time_width.max(time.len());
+                // Parse and reformat time according to config
+                let formatted_time = if let Some(parsed_time) = parse_time(&time) {
+                    format_time(parsed_time, &config.time_format)
+                } else {
+                    time
+                };
+                max_time_width = max_time_width.max(formatted_time.len());
                 max_entry_width = max_entry_width.max(text.len());
             }
 
@@ -176,19 +182,58 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
             // Second pass: format entries
             for entry in entries {
                 let (time, text) = parse_entry(&entry);
-                converted_entries.push(format_table_row(&time, &text, max_time_width, max_entry_width));
+                // Parse and reformat time according to config
+                let formatted_time = if let Some(parsed_time) = parse_time(&time) {
+                    format_time(parsed_time, &config.time_format)
+                } else {
+                    time
+                };
+                converted_entries.push(format_table_row(&formatted_time, &text, max_time_width, max_entry_width));
             }
         } else {
             // Convert from table to bullet
             for entry in entries {
                 let (time, text) = parse_entry(&entry);
                 if !time.is_empty() && !text.is_empty() {
-                    converted_entries.push(format!("- {} {}", time, text));
+                    // Parse and reformat time according to config
+                    let formatted_time = if let Some(parsed_time) = parse_time(&time) {
+                        format_time(parsed_time, &config.time_format)
+                    } else {
+                        time
+                    };
+                    converted_entries.push(format!("- {} {}", formatted_time, text));
                 }
             }
         }
 
         entries = converted_entries;
+    } else {
+        // Apply time format conversion even when not converting between formats
+        let mut formatted_entries = Vec::new();
+        for entry in entries {
+            let (time, text) = parse_entry(&entry);
+            if !time.is_empty() && !text.is_empty() {
+                // Parse and reformat time according to config
+                let formatted_time = if let Some(parsed_time) = parse_time(&time) {
+                    format_time(parsed_time, &config.time_format)
+                } else {
+                    time
+                };
+                
+                // Reconstruct the entry with the formatted time
+                if *list_type == ListType::Table {
+                    // For table format, we need to reconstruct the table row
+                    let time_width = formatted_time.len();
+                    let entry_width = text.len();
+                    formatted_entries.push(format_table_row(&formatted_time, &text, time_width, entry_width));
+                } else {
+                    // For bullet format, preserve the original bullet character
+                    let bullet_char = if entry.starts_with('*') { '*' } else { '-' };
+                    formatted_entries.push(format!("{} {} {}", bullet_char, formatted_time, text));
+                }
+            }
+        }
+        entries = formatted_entries;
     }
 
     (before, after, entries, found_type)
