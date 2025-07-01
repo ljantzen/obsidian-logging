@@ -37,12 +37,12 @@ fn test_list_with_time_format() {
 
     // Test with 24-hour format
     config.time_format = TimeFormat::Hour24;
-    list_log_for_day(0, &config);
+    list_log_for_day(0, &config, false);
     // Note: We can't easily test stdout directly, but the code is covered
 
     // Test with 12-hour format
     config.time_format = TimeFormat::Hour12;
-    list_log_for_day(0, &config);
+    list_log_for_day(0, &config, false);
 }
 
 #[test]
@@ -65,12 +65,12 @@ fn test_list_with_table_format() {
     // Test with 24-hour format and table
     config.time_format = TimeFormat::Hour24;
     config.list_type = ListType::Table;
-    list_log_for_day(0, &config);
+    list_log_for_day(0, &config, false);
 
     // Test with 12-hour format and table
     config.time_format = TimeFormat::Hour12;
     config.list_type = ListType::Table;
-    list_log_for_day(0, &config);
+    list_log_for_day(0, &config, false);
 }
 
 #[test]
@@ -88,7 +88,7 @@ fn test_list_past_date() {
     fs::write(&file_path, content).unwrap();
 
     // Test listing a past date
-    list_log_for_day(2, &config);
+    list_log_for_day(2, &config, false);
     // Note: We can't easily test stdout directly, but the code is covered
 }
 
@@ -107,7 +107,7 @@ fn test_list_future_date() {
     fs::write(&file_path, content).unwrap();
 
     // Test listing a future date
-    list_log_for_day(-1, &config);
+    list_log_for_day(-1, &config, false);
     // Note: We can't easily test stdout directly, but the code is covered
 }
 
@@ -123,6 +123,6 @@ fn test_list_nonexistent_date() {
     }
 
     // Test listing a non-existent date
-    list_log_for_day(2, &config);
+    list_log_for_day(2, &config, false);
     // Note: We can't easily test stdout directly, but the code is covered
 } 

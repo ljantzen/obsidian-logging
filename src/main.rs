@@ -59,6 +59,10 @@ struct Cli {
     #[arg(short, long, help = "List entries (default action when no entry provided)")]
     list: bool,
     
+    /// Suppress output
+    #[arg(short, long, help = "Suppress output")]
+    silent: bool,
+    
     /// The log entry text to add
     #[arg(help = "Log entry text (if not provided, lists entries)")]
     entry: Vec<String>,
@@ -113,26 +117,26 @@ fn main() {
     // Determine the command to execute
     if cli.edit {
         // Edit command
-        edit::edit_log_for_day(cli.days_ago, &config);
+        edit::edit_log_for_day(cli.days_ago, &config, cli.silent);
     } else if cli.list {
         // List command
-        list::list_log_for_day(cli.days_ago, &config);
+        list::list_log_for_day(cli.days_ago, &config, cli.silent);
     } else if !cli.entry.is_empty() {
         // Add entry command
         if let Some(time) = cli.time {
             // Handle with specific time - include all entry words
             let mut time_args = vec![time];
             time_args.extend(cli.entry);
-            add::handle_with_time(time_args.into_iter(), &config);
+            add::handle_with_time(time_args.into_iter(), &config, cli.silent);
         } else {
             // Handle plain entry
             let mut args = cli.entry.into_iter();
             if let Some(first) = args.next() {
-                add::handle_plain_entry(first, args, &config);
+                add::handle_plain_entry(first, args, &config, cli.silent);
             }
         }
     } else {
         // Default: list today's entries
-        list::list_log_for_day(cli.days_ago, &config);
+        list::list_log_for_day(cli.days_ago, &config, cli.silent);
     }
 }

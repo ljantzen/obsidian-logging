@@ -5,7 +5,7 @@ use crate::config::Config;
 use crate::utils::get_log_path_for_date;
 use crate::template::get_template_content;
 
-pub fn edit_log_for_day(relative_day: i64, config: &Config) {
+pub fn edit_log_for_day(relative_day: i64, config: &Config, silent: bool) {
     let date = Local::now().date_naive() - Duration::days(relative_day);
     let file_path = get_log_path_for_date(date, config);
     create_dir_all(file_path.parent().unwrap()).expect("Couldn't create parent directory");
@@ -22,7 +22,7 @@ pub fn edit_log_for_day(relative_day: i64, config: &Config) {
         .status()
         .expect("Failed to start editor");
 
-    if !status.success() {
+    if !status.success() && !silent {
         eprintln!("Editor exited with non-zero exit code");
     }
 }

@@ -79,6 +79,10 @@ Invokes $EDITOR with todays file.  Uses vim if $EDITOR is not set,
 
 Specifies 12H or 24H time format.  24H is default.   Overrides `time_format` in obsidian-logging.yaml 
 
+### -s or --silent 
+
+Do not output anything, not even error messages 
+
 ### -h or --help 
 
 Print command line argument help

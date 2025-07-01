@@ -31,7 +31,7 @@ fn test_add_with_time_format() {
     // Test with 24-hour format
     config.time_format = TimeFormat::Hour24;
     let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
-    handle_plain_entry_with_time(vec!["Test entry".to_string()], Some(time), &config);
+    handle_plain_entry_with_time(vec!["Test entry".to_string()], Some(time), &config, false);
 
     let content = fs::read_to_string(&file_path).unwrap();
     assert!(content.contains("* 14:30 Test entry"));
@@ -39,7 +39,7 @@ fn test_add_with_time_format() {
     // Test with 12-hour format
     config.time_format = TimeFormat::Hour12;
     let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
-    handle_plain_entry_with_time(vec!["Another test".to_string()], Some(time), &config);
+    handle_plain_entry_with_time(vec!["Another test".to_string()], Some(time), &config, false);
 
     let content = fs::read_to_string(&file_path).unwrap();
     assert!(content.contains("* 02:30 PM Another test"));
@@ -54,7 +54,7 @@ fn test_add_with_time_override() {
     // Test with 24-hour format and 12-hour time input
     config.time_format = TimeFormat::Hour24;
     let args = vec!["02:30".to_string(), "PM".to_string(), "Test".to_string(), "entry".to_string()];
-    handle_with_time(args.into_iter(), &config);
+    handle_with_time(args.into_iter(), &config, false);
 
     let content = fs::read_to_string(&file_path).unwrap();
     assert!(content.contains("* 14:30 Test entry"));
@@ -62,7 +62,7 @@ fn test_add_with_time_override() {
     // Test with 12-hour format and 24-hour time input
     config.time_format = TimeFormat::Hour12;
     let args = vec!["14:30".to_string(), "Another".to_string(), "test".to_string()];
-    handle_with_time(args.into_iter(), &config);
+    handle_with_time(args.into_iter(), &config, false);
 
     let content = fs::read_to_string(&file_path).unwrap();
     assert!(content.contains("* 02:30 PM Another test"));
@@ -78,7 +78,7 @@ fn test_add_with_table_format() {
     config.time_format = TimeFormat::Hour24;
     config.list_type = ListType::Table;
     let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
-    handle_plain_entry_with_time(vec!["Test entry".to_string()], Some(time), &config);
+    handle_plain_entry_with_time(vec!["Test entry".to_string()], Some(time), &config, false);
 
     let content = fs::read_to_string(&file_path).unwrap();
     assert!(content.contains("| Tidspunkt | Hendelse |"));
@@ -88,7 +88,7 @@ fn test_add_with_table_format() {
     config.time_format = TimeFormat::Hour12;
     config.list_type = ListType::Table;
     let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
-    handle_plain_entry_with_time(vec!["Another test".to_string()], Some(time), &config);
+    handle_plain_entry_with_time(vec!["Another test".to_string()], Some(time), &config, false);
 
     let content = fs::read_to_string(&file_path).unwrap();
     assert!(content.contains("| 02:30 PM | Another test |"));
@@ -113,7 +113,7 @@ fn test_add_with_bullet_format() {
     
     // Add new log entry
     let time = NaiveTime::from_hms_opt(8, 0, 0).unwrap();
-    handle_plain_entry_with_time(vec!["Second entry".to_string()], Some(time), &config);
+    handle_plain_entry_with_time(vec!["Second entry".to_string()], Some(time), &config, false);
     
     // Read and verify content
     let content = read_to_string(&log_path).unwrap();
@@ -132,7 +132,7 @@ fn test_add_with_invalid_time_does_not_lose_first_word() {
 
     // Test with invalid time that should be treated as part of the sentence
     let args = vec!["invalid_time".to_string(), "This".to_string(), "is".to_string(), "a".to_string(), "test".to_string()];
-    handle_with_time(args.into_iter(), &config);
+    handle_with_time(args.into_iter(), &config, false);
 
     let content = fs::read_to_string(&file_path).unwrap();
     // Should contain the full sentence including the invalid time

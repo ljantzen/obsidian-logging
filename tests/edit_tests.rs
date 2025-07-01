@@ -45,7 +45,7 @@ fn test_edit_today() {
     env::set_var("EDITOR", "echo");
 
     // Test editing today's file
-    edit_log_for_day(0, &config);
+    edit_log_for_day(0, &config, false);
 
     // Verify the file still exists and has the same content
     assert!(file_path.exists());
@@ -76,7 +76,7 @@ fn test_edit_relative_day() {
     env::set_var("EDITOR", "echo");
 
     // Test editing yesterday's file
-    edit_log_for_day(1, &config);
+    edit_log_for_day(1, &config, false);
 
     // Verify the file still exists and has the same content
     assert!(file_path.exists());
@@ -99,7 +99,7 @@ fn test_edit_nonexistent_file() {
     env::set_var("EDITOR", "echo");
 
     // Test editing a non-existent file
-    edit_log_for_day(-1, &config);  // -1 means tomorrow now
+    edit_log_for_day(-1, &config, false);  // -1 means tomorrow now
 
     // Verify the file was created with template content
     assert!(file_path.exists());
@@ -122,7 +122,7 @@ fn test_edit_past_date_does_not_create_file() {
     env::set_var("EDITOR", "echo");
 
     // Test editing a non-existent past file
-    edit_log_for_day(2, &config);
+    edit_log_for_day(2, &config, false);
 
     // Verify the file was NOT created
     assert!(!file_path.exists());
@@ -143,7 +143,7 @@ fn test_edit_future_date_creates_file() {
     env::set_var("EDITOR", "echo");
 
     // Test editing a non-existent future file
-    edit_log_for_day(-1, &config);
+    edit_log_for_day(-1, &config, false);
 
     // Verify the file was created with template content
     assert!(file_path.exists());
