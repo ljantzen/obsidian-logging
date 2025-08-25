@@ -50,15 +50,62 @@ impl<'de> Deserialize<'de> for TimeFormat {
     where
         D: serde::Deserializer<'de>,
     {
-        let s = String::deserialize(deserializer)?;
-        match s.to_lowercase().as_str() {
-            "12" | "12h" | "12hour" => Ok(TimeFormat::Hour12),
-            "24" | "24h" | "24hour" => Ok(TimeFormat::Hour24),
-            _ => Err(serde::de::Error::custom(format!(
-                "Invalid time format '{}'. Expected '12' or '24' (case insensitive)",
-                s
-            ))),
+        use serde::de::Visitor;
+        use std::fmt;
+
+        struct TimeFormatVisitor;
+
+        impl<'de> Visitor<'de> for TimeFormatVisitor {
+            type Value = TimeFormat;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a string or integer representing time format (12 or 24)")
+            }
+
+            fn visit_str<E>(self, value: &str) -> Result<TimeFormat, E>
+            where
+                E: serde::de::Error,
+            {
+                match value.to_lowercase().as_str() {
+                    "12" | "12h" | "12hour" => Ok(TimeFormat::Hour12),
+                    "24" | "24h" | "24hour" => Ok(TimeFormat::Hour24),
+                    _ => Err(E::custom(format!(
+                        "Invalid time format '{}'. Expected '12' or '24' (case insensitive)",
+                        value
+                    ))),
+                }
+            }
+
+            fn visit_u64<E>(self, value: u64) -> Result<TimeFormat, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    12 => Ok(TimeFormat::Hour12),
+                    24 => Ok(TimeFormat::Hour24),
+                    _ => Err(E::custom(format!(
+                        "Invalid time format '{}'. Expected 12 or 24",
+                        value
+                    ))),
+                }
+            }
+
+            fn visit_i64<E>(self, value: i64) -> Result<TimeFormat, E>
+            where
+                E: serde::de::Error,
+            {
+                match value {
+                    12 => Ok(TimeFormat::Hour12),
+                    24 => Ok(TimeFormat::Hour24),
+                    _ => Err(E::custom(format!(
+                        "Invalid time format '{}'. Expected 12 or 24",
+                        value
+                    ))),
+                }
+            }
         }
+
+        deserializer.deserialize_any(TimeFormatVisitor)
     }
 }
 

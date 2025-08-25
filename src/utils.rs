@@ -92,12 +92,32 @@ fn parse_entry(entry: &str) -> (String, String) {
             return (parts[1].trim().to_string(), parts[2].trim().to_string());
         }
     } else if entry.starts_with(['*', '-']) {
-        // Parse bullet format
-        if let Some(space_pos) = entry.find(' ') {
-            let content = &entry[space_pos + 1..];
-            if let Some(second_space) = content.find(' ') {
-                return (content[..second_space].trim().to_string(),
-                       content[second_space + 1..].trim().to_string());
+        // Parse bullet format - handle both 24-hour and 12-hour time formats
+        let content = entry.trim_start_matches(|c| c == '-' || c == '*' || c == ' ');
+        
+        // Try to find a valid time pattern at the beginning
+        let time_patterns = [
+            // 24-hour format: HH:MM
+            r"^(\d{1,2}:\d{2})\s+(.+)$",
+            // 12-hour format: HH:MM AM/PM
+            r"^(\d{1,2}:\d{2}\s+[AaPp][Mm])\s+(.+)$",
+        ];
+        
+        for pattern in &time_patterns {
+            if let Ok(regex) = Regex::new(pattern) {
+                if let Some(captures) = regex.captures(content) {
+                    let time = captures.get(1).unwrap().as_str().trim();
+                    let entry_text = captures.get(2).unwrap().as_str().trim();
+                    return (time.to_string(), entry_text.to_string());
+                }
+            }
+        }
+        
+        // Fallback to original behavior for backward compatibility
+        if let Some(space_pos) = content.find(' ') {
+            if let Some(second_space) = content[space_pos + 1..].find(' ') {
+                return (content[..space_pos + 1 + second_space].trim().to_string(),
+                       content[space_pos + 1 + second_space + 1..].trim().to_string());
             }
         }
     }
@@ -208,32 +228,9 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
 
         entries = converted_entries;
     } else {
-        // Apply time format conversion even when not converting between formats
-        let mut formatted_entries = Vec::new();
-        for entry in entries {
-            let (time, text) = parse_entry(&entry);
-            if !time.is_empty() && !text.is_empty() {
-                // Parse and reformat time according to config
-                let formatted_time = if let Some(parsed_time) = parse_time(&time) {
-                    format_time(parsed_time, &config.time_format)
-                } else {
-                    time
-                };
-                
-                // Reconstruct the entry with the formatted time
-                if *list_type == ListType::Table {
-                    // For table format, we need to reconstruct the table row
-                    let time_width = formatted_time.len();
-                    let entry_width = text.len();
-                    formatted_entries.push(format_table_row(&formatted_time, &text, time_width, entry_width));
-                } else {
-                    // For bullet format, preserve the original bullet character
-                    let bullet_char = if entry.starts_with('*') { '*' } else { '-' };
-                    formatted_entries.push(format!("{} {} {}", bullet_char, formatted_time, text));
-                }
-            }
-        }
-        entries = formatted_entries;
+        // Don't apply time format conversion when list type hasn't changed
+        // This prevents unnecessary reformatting that can cause AM/PM duplication
+        // The entries are already in the correct format
     }
 
     (before, after, entries, found_type)

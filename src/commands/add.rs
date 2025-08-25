@@ -20,10 +20,32 @@ fn parse_table_row(line: &str) -> Option<(String, String)> {
 /// Parse a bullet entry into (timestamp, entry)
 fn parse_bullet_entry(line: &str) -> Option<(String, String)> {
     let content = line.trim_start_matches(|c| c == '-' || c == '*' || c == ' ');
+    
+    // Try to find a valid time pattern at the beginning
+    // This handles both 24-hour (HH:MM) and 12-hour (HH:MM AM/PM) formats
+    let time_patterns = [
+        // 24-hour format: HH:MM
+        r"^(\d{1,2}:\d{2})\s+(.+)$",
+        // 12-hour format: HH:MM AM/PM
+        r"^(\d{1,2}:\d{2}\s+[AaPp][Mm])\s+(.+)$",
+    ];
+    
+    for pattern in &time_patterns {
+        if let Ok(regex) = regex::Regex::new(pattern) {
+            if let Some(captures) = regex.captures(content) {
+                let time = captures.get(1).unwrap().as_str().trim();
+                let entry = captures.get(2).unwrap().as_str().trim();
+                return Some((time.to_string(), entry.to_string()));
+            }
+        }
+    }
+    
+    // Fallback to original behavior for backward compatibility
     if let Some(space_pos) = content.find(' ') {
         let (time, entry) = content.split_at(space_pos);
         return Some((time.trim().to_string(), entry.trim().to_string()));
     }
+    
     None
 }
 
