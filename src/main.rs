@@ -1,6 +1,7 @@
 use clap::{Parser, ValueEnum};
 use obsidian_logging::{Config, ListType, TimeFormat, add, edit, list};
 use std::env;
+use std::io::{self, Read};
 
 #[derive(Parser)]
 #[command(
@@ -11,14 +12,16 @@ use std::env;
 
 USAGE EXAMPLES:
   obsidian-logging                    # List today's entries
-  obsidian-logging <log entry>       # Add a new log entry
-  obsidian-logging -t 14:30 <entry>  # Add entry with specific time
+  obsidian-logging log entry         # Add a new log entry
+  obsidian-logging -t 14:30 entry    # Add entry with specific time
   obsidian-logging -l                # List today's entries
   obsidian-logging -b 1              # List entries from 1 day ago
   obsidian-logging -e                # Edit today's file
   obsidian-logging -b 1 -e           # Edit file from 1 day ago
   obsidian-logging -T table -l       # List in table format
   obsidian-logging -f 12 -t 2:30 PM  # Use 12-hour format with time
+  echo \"My log entry\" | obsidian-logging -S        # Read from stdin
+  cat file.txt | obsidian-logging -S                 # Read from file via pipe
 
 CONFIGURATION:
   Configuration file location:
@@ -62,6 +65,10 @@ struct Cli {
     /// Suppress output
     #[arg(short, long, help = "Suppress output")]
     silent: bool,
+    
+    /// Read log entry from stdin
+    #[arg(short = 'S', long, help = "Read log entry from stdin instead of command line arguments")]
+    stdin: bool,
     
     /// The log entry text to add
     #[arg(help = "Log entry text (if not provided, lists entries)")]
@@ -121,6 +128,35 @@ fn main() {
     } else if cli.list {
         // List command
         list::list_log_for_day(cli.days_ago, &config, cli.silent);
+    } else if cli.stdin {
+        // Read entry from stdin
+        let mut stdin_content = String::new();
+        if let Err(e) = io::stdin().read_to_string(&mut stdin_content) {
+            eprintln!("Error reading from stdin: {}", e);
+            std::process::exit(1);
+        }
+        
+        let entry = stdin_content.trim();
+        if entry.is_empty() {
+            eprintln!("Error: No content read from stdin");
+            std::process::exit(1);
+        }
+        
+        // Split the entry into words for processing
+        let entry_words: Vec<String> = entry.split_whitespace().map(|s| s.to_string()).collect();
+        
+        if let Some(time) = cli.time {
+            // Handle with specific time - include all entry words
+            let mut time_args = vec![time];
+            time_args.extend(entry_words);
+            add::handle_with_time(time_args.into_iter(), &config, cli.silent);
+        } else {
+            // Handle plain entry
+            let mut args = entry_words.into_iter();
+            if let Some(first) = args.next() {
+                add::handle_plain_entry(first, args, &config, cli.silent);
+            }
+        }
     } else if !cli.entry.is_empty() {
         // Add entry command
         if let Some(time) = cli.time {
