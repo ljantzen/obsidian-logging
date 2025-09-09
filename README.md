@@ -40,10 +40,6 @@ On Windows, the `doskey` command can be used to create a macro:
 doskey q=obsidian-logging
 ```
 
-## Environment variable
-
-If the environment variable $OBSIDIAN_VAULT_DIR has a value it is expected to poiny to the top level directory of the vault. If specified, it will override the value in obsidian-logging.yaml 
-
 ## Configuration file
 
 Obsidian-logging reads ~/.config/obsidian-logging/obsidian-logging.yaml on startup.  If it does not exist, obsidian-logging will create it and prompt for some of the values. 
@@ -51,16 +47,26 @@ This is a file that uses the yaml configuration format.  See obsidian-logging.ex
 
 Obsidian-logging looks for a marker that signifiies where the log entries block will start. Log entries must be consecutive without empty lines. The marker is specified in the config file. 
 
+## Environment variable 
+
+If specified, $OBSIDIAN_VAULT_DIR will override the `vault` value in `obsidian-logging.yaml`
+
 
 ## Command line switches 
 
+### No arguments 
+
+When invoking `obsidian-logging` without any arguments the entries of the current day, if any, will be listed.  This is equivalent to `obsidian-logging -l`
+
 ### No swithces
 
-When invoking the command `obsidian-logging This is a log entry` obsidian-logging will append the string `- HH:mm This is a log entry` (where HH:mm) is the current timestamp ) to the markdown daily note. 
+When invoking the command `obsidian-logging This is a log entry` obsidian-logging will append the string `This is a log entry` to the log section of the markdown daily note. 
+A timestamp will be prepended according to the chosen list mode. If list mode is `bullet`, '- HH:mm ' is prepended to the log statement.  If list mode is 'table', the log statement is 
+wrapped in markdown table column separators:  `| HH:mm | log statement|`
 
 ### -t or --time 
 
-The timestamp may be overridden by specifying the -t/--time HH:mm switch.  Log entries are sorted chronobsidian-loggingically before being added to the md file. 
+The timestamp may be overridden by specifying the -t/--time HH:mm switch.  Log entries are sorted chronologically before being added to the markdown file. 
 
 
 ### -l  or --list 
@@ -95,6 +101,8 @@ Specifies the list output mode when obsidian-logging -l is called. Valid argumen
 
 Outputs the current version string and exits execution
 
+### -S or --stdin 
+If specified, input will be read from stdin instead of command line arguments, allowing piping of log statements into the program.  Carriage return or linefeed characters will be removed, and log statement will be logged as a single line. 
 
 
 ## Screenshots
