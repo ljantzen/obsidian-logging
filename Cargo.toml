@@ -1,6 +1,6 @@
 [package]
 name = "obsidian-logging"
-version = "1.1.0"
+version = "1.1.1"
 edition = "2021"
 description = "A journaling/logging CLI that stores logs in Obsidian markdown files"
 license = "MIT"
