@@ -117,7 +117,7 @@ fn test_add_with_bullet_format() {
     
     // Read and verify content
     let content = read_to_string(&log_path).unwrap();
-    let (_, _, entries, _) = extract_log_entries(&content, &config.section_header, &config.list_type, &config);
+    let (_, _, entries, _) = extract_log_entries(&content, &config.section_header, &config.list_type, &config, false);
     
     assert_eq!(entries.len(), 2);
     assert!(entries[0].contains("Second entry"));

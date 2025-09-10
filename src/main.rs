@@ -70,6 +70,10 @@ struct Cli {
     #[arg(short = 'S', long, help = "Read log entry from stdin instead of command line arguments")]
     stdin: bool,
     
+    /// Include table header when listing entries
+    #[arg(short = 'H', long, help = "Include table header when listing entries")]
+    header: bool,
+    
     /// The log entry text to add
     #[arg(help = "Log entry text (if not provided, lists entries)")]
     entry: Vec<String>,
@@ -127,7 +131,7 @@ fn main() {
         edit::edit_log_for_day(cli.days_ago, &config, cli.silent);
     } else if cli.list {
         // List command
-        list::list_log_for_day(cli.days_ago, &config, cli.silent);
+        list::list_log_for_day(cli.days_ago, &config, cli.silent, cli.header);
     } else if cli.stdin {
         // Read entry from stdin
         let mut stdin_content = String::new();
@@ -173,6 +177,6 @@ fn main() {
         }
     } else {
         // Default: list today's entries
-        list::list_log_for_day(cli.days_ago, &config, cli.silent);
+        list::list_log_for_day(cli.days_ago, &config, cli.silent, cli.header);
     }
 }

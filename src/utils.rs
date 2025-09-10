@@ -127,7 +127,7 @@ fn parse_entry(entry: &str) -> (String, String) {
 /// Extract log entries from the log section 
 /// Returns ( content before log section, content after log section, list of log entries, and detected list type)
 /// Section heading retrieved from yaml config 
-pub fn extract_log_entries(content: &str, section_header: &str, list_type: &ListType, config: &Config) -> (String, String, Vec<String>, ListType) {
+pub fn extract_log_entries(content: &str, section_header: &str, list_type: &ListType, config: &Config, include_header: bool) -> (String, String, Vec<String>, ListType) {
     let mut before = String::new();
     let mut after = String::new();
     let mut entries = Vec::new();
@@ -159,7 +159,7 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
                     found_type = ListType::Bullet;
                 }
 
-                // Skip table header and separator
+                // Skip table separator and header rows
                 if !trimmed.contains("---") && trimmed != format!("| {} | {} |", config.time_label, config.event_label) {
                     entries.push(line.to_string());
                 }
@@ -195,9 +195,11 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
                 max_entry_width = max_entry_width.max(text.len());
             }
 
-            // Add header
-            converted_entries.push(format_table_row(&config.time_label, &config.event_label, max_time_width, max_entry_width));
-            converted_entries.push(format_table_separator(max_time_width, max_entry_width));
+            // Add header only if include_header is true
+            if include_header {
+                converted_entries.push(format_table_row(&config.time_label, &config.event_label, max_time_width, max_entry_width));
+                converted_entries.push(format_table_separator(max_time_width, max_entry_width));
+            }
 
             // Second pass: format entries
             for entry in entries {
@@ -212,6 +214,11 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
             }
         } else {
             // Convert from table to bullet
+            // Add table header as a comment only if include_header is true
+            if include_header {
+                converted_entries.push(format!("<!-- {} | {} -->", config.time_label, config.event_label));
+            }
+            
             for entry in entries {
                 let (time, text) = parse_entry(&entry);
                 if !time.is_empty() && !text.is_empty() {
@@ -228,9 +235,38 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
 
         entries = converted_entries;
     } else {
-        // Don't apply time format conversion when list type hasn't changed
-        // This prevents unnecessary reformatting that can cause AM/PM duplication
-        // The entries are already in the correct format
+        // Format hasn't changed, but ensure table format has proper header
+        if *list_type == ListType::Table && found_type == ListType::Table {
+            if include_header {
+                // Rebuild table with proper header and separator
+                let mut max_time_width = config.time_label.len();
+                let mut max_entry_width = config.event_label.len();
+
+                // First pass: calculate widths from existing entries
+                for entry in &entries {
+                    let (time, text) = parse_entry(entry);
+                    max_time_width = max_time_width.max(time.len());
+                    max_entry_width = max_entry_width.max(text.len());
+                }
+
+                // Rebuild table with header
+                let mut rebuilt_entries = Vec::new();
+                rebuilt_entries.push(format_table_row(&config.time_label, &config.event_label, max_time_width, max_entry_width));
+                rebuilt_entries.push(format_table_separator(max_time_width, max_entry_width));
+                
+                // Add data rows
+                for entry in entries {
+                    let (time, text) = parse_entry(&entry);
+                    if !time.is_empty() && !text.is_empty() {
+                        rebuilt_entries.push(format_table_row(&time, &text, max_time_width, max_entry_width));
+                    }
+                }
+                
+                entries = rebuilt_entries;
+            }
+            // If include_header is false, keep original entries as-is
+        }
+        // For bullet format, entries are already in the correct format
     }
 
     (before, after, entries, found_type)

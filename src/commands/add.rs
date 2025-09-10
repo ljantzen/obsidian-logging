@@ -109,7 +109,7 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
         read_to_string(&file_path).unwrap_or_default()
     };
 
-    let (before_log, after_log, entries, detected_type) = extract_log_entries(&content, &config.section_header, &config.list_type, config);
+    let (before_log, after_log, entries, detected_type) = extract_log_entries(&content, &config.section_header, &config.list_type, config, false);
 
     // For new files, always use the config list type
     // For existing files, use detected type unless there are no entries

@@ -45,7 +45,7 @@ Some content
 ## Another section"#;
 
     let config = create_test_config();
-    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config);
+    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
 
     assert_eq!(before, "# Header\nSome content\n\n");
     assert_eq!(after, "## Another section");
@@ -72,7 +72,7 @@ Some content
 ## Another section"#;
 
     let config = create_test_config();
-    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Table, &config);
+    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Table, &config, false);
 
     assert_eq!(before, "# Header\nSome content\n\n");
     assert_eq!(after, "## Another section");
@@ -94,7 +94,7 @@ Some content
 ## Another section"#;
 
     let config = create_test_config();
-    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config);
+    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
 
     assert_eq!(before, "# Header\nSome content\n\n");
     assert_eq!(after, "## Another section");
@@ -107,7 +107,7 @@ fn test_extract_log_entries_no_section() {
     let content = "# Header\nSome content\n";
 
     let config = create_test_config();
-    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config);
+    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
 
     assert_eq!(before, content);
     assert_eq!(after, "");
@@ -122,7 +122,7 @@ fn test_extract_log_entries_convert_bullet_to_table() {
 * 10:30 Second entry"#;
 
     let config = create_test_config();
-    let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Table, &config);
+    let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Table, &config, true);
 
     // Should convert to table format with consistent column widths
     assert_eq!(entries[0], "| Tidspunkt | Hendelse     |");
@@ -140,7 +140,7 @@ fn test_extract_log_entries_convert_table_to_bullet() {
 | 10:30 | Second entry |"#;
 
     let config = create_test_config();
-    let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config);
+    let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
 
     // Should convert to bullet format
     assert_eq!(entries[0], "- 09:00 First entry");
@@ -162,7 +162,7 @@ Some content
 ## Another section"#;
 
     let config = create_test_config();
-    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Table, &config);
+    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Table, &config, false);
 
     assert_eq!(before, "# Header\nSome content\n\n");
     assert_eq!(after, "## Another section");
@@ -247,7 +247,7 @@ Some content
 ## Another section"#;
 
     let config = create_test_config();
-    let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config);
+    let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
 
     assert_eq!(entries, vec![
         "* 09:00 AM First entry",
