@@ -11,9 +11,11 @@ use std::io::{self, Read};
     long_about = "obsidian-logging is a command-line tool for creating and managing log entries in Obsidian markdown files. It supports various formats and can be configured through a YAML configuration file.
 
 USAGE EXAMPLES:
-  obsidian-logging                    # List today's entries
+  obsidian-logging                   # List today's entries
   obsidian-logging log entry         # Add a new log entry
   obsidian-logging -t 14:30 entry    # Add entry with specific time
+  obsidian-logging -c work meeting   # Add entry to work category section
+  obsidian-logging -c personal gym   # Add entry to personal category section
   obsidian-logging -l                # List today's entries
   obsidian-logging -b 1              # List entries from 1 day ago
   obsidian-logging -e                # Edit today's file
@@ -74,6 +76,12 @@ struct Cli {
     #[arg(short = 'H', long, help = "Include table header when listing entries")]
     header: bool,
     
+    /// Category for the log entry (uses section_header_<category> from config)
+    /// Can be specified multiple times to list multiple categories
+    /// Use 'all' to list all categories
+    #[arg(short = 'c', long, help = "Category for the log entry (uses section_header_<category> from config). Can be specified multiple times. Use 'all' to list all categories.")]
+    category: Vec<String>,
+    
     /// The log entry text to add
     #[arg(help = "Log entry text (if not provided, lists entries)")]
     entry: Vec<String>,
@@ -131,7 +139,7 @@ fn main() {
         edit::edit_log_for_day(cli.days_ago, &config, cli.silent);
     } else if cli.list {
         // List command
-        list::list_log_for_day(cli.days_ago, &config, cli.silent, cli.header);
+        list::list_log_for_day(cli.days_ago, &config, cli.silent, cli.header, &cli.category);
     } else if cli.stdin {
         // Read entry from stdin
         let mut stdin_content = String::new();
@@ -153,12 +161,12 @@ fn main() {
             // Handle with specific time - include all entry words
             let mut time_args = vec![time];
             time_args.extend(entry_words);
-            add::handle_with_time(time_args.into_iter(), &config, cli.silent);
+            add::handle_with_time(time_args.into_iter(), &config, cli.silent, cli.category.first().map(|s| s.as_str()));
         } else {
             // Handle plain entry
             let mut args = entry_words.into_iter();
             if let Some(first) = args.next() {
-                add::handle_plain_entry(first, args, &config, cli.silent);
+                add::handle_plain_entry(first, args, &config, cli.silent, cli.category.first().map(|s| s.as_str()));
             }
         }
     } else if !cli.entry.is_empty() {
@@ -167,16 +175,16 @@ fn main() {
             // Handle with specific time - include all entry words
             let mut time_args = vec![time];
             time_args.extend(cli.entry);
-            add::handle_with_time(time_args.into_iter(), &config, cli.silent);
+            add::handle_with_time(time_args.into_iter(), &config, cli.silent, cli.category.first().map(|s| s.as_str()));
         } else {
             // Handle plain entry
             let mut args = cli.entry.into_iter();
             if let Some(first) = args.next() {
-                add::handle_plain_entry(first, args, &config, cli.silent);
+                add::handle_plain_entry(first, args, &config, cli.silent, cli.category.first().map(|s| s.as_str()));
             }
         }
     } else {
         // Default: list today's entries
-        list::list_log_for_day(cli.days_ago, &config, cli.silent, cli.header);
+        list::list_log_for_day(cli.days_ago, &config, cli.silent, cli.header, &cli.category);
     }
 }

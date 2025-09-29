@@ -151,7 +151,7 @@ impl ToString for TimeFormat {
     }
 }
 
-#[derive(Debug, Deserialize, Clone, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct Config {
     pub vault: String,
     pub file_path_format: String,
@@ -159,12 +159,10 @@ pub struct Config {
     pub list_type: ListType,
     pub template_path: Option<String>,
     pub locale: Option<String>,
-    #[serde(default = "default_time_format")]
     pub time_format: TimeFormat,
-    #[serde(default = "default_time_label")]
     pub time_label: String,
-    #[serde(default = "default_event_label")]
     pub event_label: String,
+    pub category_headers: std::collections::HashMap<String, String>,
 }
 
 fn default_time_format() -> TimeFormat {
@@ -177,6 +175,132 @@ fn default_time_label() -> String {
 
 fn default_event_label() -> String {
     "Hendelse".to_string()
+}
+
+impl<'de> Deserialize<'de> for Config {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::{self, MapAccess, Visitor};
+        use std::fmt;
+
+        struct ConfigVisitor;
+
+        impl<'de> Visitor<'de> for ConfigVisitor {
+            type Value = Config;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a YAML configuration object")
+            }
+
+            fn visit_map<V>(self, mut map: V) -> Result<Config, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut vault = None;
+                let mut file_path_format = None;
+                let mut section_header = None;
+                let mut list_type = None;
+                let mut template_path = None;
+                let mut locale = None;
+                let mut time_format = None;
+                let mut time_label = None;
+                let mut event_label = None;
+                let mut category_headers = std::collections::HashMap::new();
+
+                while let Some(key) = map.next_key::<String>()? {
+                    match key.as_str() {
+                        "vault" => {
+                            if vault.is_some() {
+                                return Err(de::Error::duplicate_field("vault"));
+                            }
+                            vault = Some(map.next_value()?);
+                        }
+                        "file_path_format" => {
+                            if file_path_format.is_some() {
+                                return Err(de::Error::duplicate_field("file_path_format"));
+                            }
+                            file_path_format = Some(map.next_value()?);
+                        }
+                        "section_header" => {
+                            if section_header.is_some() {
+                                return Err(de::Error::duplicate_field("section_header"));
+                            }
+                            section_header = Some(map.next_value()?);
+                        }
+                        "list_type" => {
+                            if list_type.is_some() {
+                                return Err(de::Error::duplicate_field("list_type"));
+                            }
+                            list_type = Some(map.next_value()?);
+                        }
+                        "template_path" => {
+                            if template_path.is_some() {
+                                return Err(de::Error::duplicate_field("template_path"));
+                            }
+                            template_path = Some(map.next_value()?);
+                        }
+                        "locale" => {
+                            if locale.is_some() {
+                                return Err(de::Error::duplicate_field("locale"));
+                            }
+                            locale = Some(map.next_value()?);
+                        }
+                        "time_format" => {
+                            if time_format.is_some() {
+                                return Err(de::Error::duplicate_field("time_format"));
+                            }
+                            time_format = Some(map.next_value()?);
+                        }
+                        "time_label" => {
+                            if time_label.is_some() {
+                                return Err(de::Error::duplicate_field("time_label"));
+                            }
+                            time_label = Some(map.next_value()?);
+                        }
+                        "event_label" => {
+                            if event_label.is_some() {
+                                return Err(de::Error::duplicate_field("event_label"));
+                            }
+                            event_label = Some(map.next_value()?);
+                        }
+                        _ => {
+                            // Check if this is a category header (starts with "section_header_")
+                            if key.starts_with("section_header_") {
+                                let value: String = map.next_value()?;
+                                category_headers.insert(key, value);
+                            } else {
+                                // Skip unknown fields
+                                let _: serde_yaml::Value = map.next_value()?;
+                            }
+                        }
+                    }
+                }
+
+                Ok(Config {
+                    vault: vault.unwrap_or_default(),
+                    file_path_format: file_path_format.unwrap_or_else(|| {
+                        if cfg!(windows) {
+                            "10-Journal\\{year}\\{month}\\{date}.md".to_string()
+                        } else {
+                            "10-Journal/{year}/{month}/{date}.md".to_string()
+                        }
+                    }),
+                    section_header: section_header.unwrap_or_else(|| "## 🕗".to_string()),
+                    list_type: list_type.unwrap_or(ListType::Bullet),
+                    template_path,
+                    locale,
+                    time_format: time_format.unwrap_or_else(default_time_format),
+                    time_label: time_label.unwrap_or_else(default_time_label),
+                    event_label: event_label.unwrap_or_else(default_event_label),
+                    category_headers,
+                })
+            }
+        }
+
+        deserializer.deserialize_map(ConfigVisitor)
+    }
 }
 
 impl Default for Config {
@@ -197,6 +321,7 @@ impl Default for Config {
             time_format: TimeFormat::Hour24,
             time_label: default_time_label(),
             event_label: default_event_label(),
+            category_headers: std::collections::HashMap::new(),
         }
     }
 }
@@ -212,6 +337,17 @@ impl Config {
         let mut config = self.clone();
         config.time_format = time_format;
         config
+    }
+
+    /// Get the section header for a specific category
+    /// Returns the default section_header if no category-specific header is found
+    pub fn get_section_header_for_category(&self, category: Option<&str>) -> &str {
+        if let Some(cat) = category {
+            let key = format!("section_header_{}", cat);
+            self.category_headers.get(&key).map(|s| s.as_str()).unwrap_or(&self.section_header)
+        } else {
+            &self.section_header
+        }
     }
 
     pub fn initialize() -> Config {

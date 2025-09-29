@@ -1,6 +1,11 @@
 vault: /home/user/obsidian/
-file_path_format: 10-Journal/{year}/{month}/{date}.md
+file_path_format: "10-Journal/{year}/{month}/{date}.md"
 section_header: "## 🕗"
+# Category-specific section headers
+# Use -c <category> or --category <category> to log to these sections
+section_header_work: "## 💼 Work"
+section_header_personal: "## 🏠 Personal"
+section_header_health: "## 🏥 Health"
 list_type: bullet
 template_path: ~/.config/obsidian-logging/template.md
 # Optional: Time format for timestamps (12 or 24 hour)

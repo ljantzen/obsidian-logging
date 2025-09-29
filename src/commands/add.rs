@@ -49,7 +49,7 @@ fn parse_bullet_entry(line: &str) -> Option<(String, String)> {
     None
 }
 
-pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config, silent: bool) {
+pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config, silent: bool, category: Option<&str>) {
     let time_str = args.next().expect("Expected time as first argument");
     let mut sentence_parts = Vec::new();
 
@@ -59,14 +59,14 @@ pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config, s
             let time_with_period = format!("{} {}", time_str, next_word);
             if let Some(time) = parse_time(&time_with_period) {
                 sentence_parts.extend(args);
-                handle_plain_entry_with_time(sentence_parts, Some(time), config, silent);
+                handle_plain_entry_with_time(sentence_parts, Some(time), config, silent, category);
                 return;
             } else {
                 // If time parsing failed with AM/PM, treat both as part of the sentence
                 sentence_parts.push(time_str);
                 sentence_parts.push(next_word);
                 sentence_parts.extend(args);
-                handle_plain_entry_with_time(sentence_parts, None, config, silent);
+                handle_plain_entry_with_time(sentence_parts, None, config, silent, category);
                 return;
             }
         } else {
@@ -77,22 +77,22 @@ pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config, s
     // Try parsing time without AM/PM
     if let Some(time) = parse_time(&time_str) {
         sentence_parts.extend(args);
-        handle_plain_entry_with_time(sentence_parts, Some(time), config, silent);
+        handle_plain_entry_with_time(sentence_parts, Some(time), config, silent, category);
     } else {
         // If time parsing failed, treat first argument as part of the sentence
         sentence_parts.insert(0, time_str);
         sentence_parts.extend(args);
-        handle_plain_entry_with_time(sentence_parts, None, config, silent);
+        handle_plain_entry_with_time(sentence_parts, None, config, silent, category);
     }
 }
 
-pub fn handle_plain_entry(first_arg: String, args: impl Iterator<Item=String>, config: &Config, silent: bool) {
+pub fn handle_plain_entry(first_arg: String, args: impl Iterator<Item=String>, config: &Config, silent: bool, category: Option<&str>) {
     let mut sentence_parts = vec![first_arg];
     sentence_parts.extend(args);
-    handle_plain_entry_with_time(sentence_parts, None, config, silent);
+    handle_plain_entry_with_time(sentence_parts, None, config, silent, category);
 }
 
-pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Option<NaiveTime>, config: &Config, silent: bool) {
+pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Option<NaiveTime>, config: &Config, silent: bool, category: Option<&str>) {
     let sentence = sentence_parts.join(" ");
     let now = Local::now();
     let date = now.date_naive();
@@ -109,7 +109,8 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
         read_to_string(&file_path).unwrap_or_default()
     };
 
-    let (before_log, after_log, entries, detected_type) = extract_log_entries(&content, &config.section_header, &config.list_type, config, false);
+    let section_header = config.get_section_header_for_category(category);
+    let (before_log, after_log, entries, detected_type) = extract_log_entries(&content, section_header, &config.list_type, config, false);
 
     // For new files, always use the config list type
     // For existing files, use detected type unless there are no entries
@@ -179,7 +180,7 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
     let new_content = format!(
         "{}{}\n\n{}\n{}",
         before_log,
-        &config.section_header,
+        section_header,
         formatted_entries.join("\n"),
         if after_log.is_empty() {
             String::new()
