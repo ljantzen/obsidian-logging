@@ -39,6 +39,7 @@ fn setup_test_env() -> (PathBuf, Config) {
         time_format: TimeFormat::Hour24,
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
+        category_headers: std::collections::HashMap::new(),
     };
     
     let config_path = config_dir_path.join("obsidian-logging.yaml");
@@ -172,4 +173,25 @@ fn test_time_option_preserves_all_words() {
     
     // Should contain the full sentence with the specified time
     assert!(content.contains("14:30 This is a test entry"));
+}
+
+#[test]
+fn test_version_flags() {
+    // Test --version flag
+    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    let output = cmd.arg("--version").output().unwrap();
+    
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("obsidian-logging"));
+    assert!(stdout.contains("1.1.2")); // This should match the version in Cargo.toml
+    
+    // Test -v flag
+    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    let output = cmd.arg("-v").output().unwrap();
+    
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).unwrap();
+    assert!(stdout.contains("obsidian-logging"));
+    assert!(stdout.contains("1.1.2"));
 } 

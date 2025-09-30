@@ -32,7 +32,7 @@ Since obsidian-logging is quite a mouthful to type every time, it is recommended
 ```
 alias q=` obsidian-logging`
 ```
-(Note: the space before the program name stops the commaand from being entered into command history)
+(Note: the space before the program name stops the command from being entered into command history)
 
 On Windows, the `doskey` command can be used to create a macro: 
 
@@ -45,13 +45,22 @@ doskey q=obsidian-logging
 Obsidian-logging reads ~/.config/obsidian-logging/obsidian-logging.yaml on startup.  If it does not exist, obsidian-logging will create it and prompt for some of the values. 
 This is a file that uses the yaml configuration format.  See obsidian-logging.example.yaml for what can be configured. 
 
-Obsidian-logging looks for a marker that signifiies where the log entries block will start. Log entries must be consecutive without empty lines. The marker is specified in the config file.
+Obsidian-logging looks for a marker that signifies where the log entries block will start. Log entries must be consecutive without empty lines. The marker is specified in the config file.
 
 ### Category-specific section headers
 
-You can define category-specific section headers using the pattern `section_header_<category_name>`. When using the `-c` or `--category` flag, obsidian-logging will look for a section header with this pattern and log entries to that section instead of the default section.
+The default block marker is specified in the configuration file with the property `section_header`. 
 
 Example configuration:
+
+```yaml
+section_header: "## 🕗"
+```
+
+obsidian-logging can log to a number of different sections in the daily log. These are called log `categories`.  You can define category-specific section headers in the config yaml using the pattern `section_header_<category_name>`. When using the `-c` or `--category` flag, obsidian-logging will look for a section header with this pattern and log entries to that section instead of the default section.
+
+Example configuration:
+
 ```yaml
 section_header: "## 🕗"
 section_header_work: "## 💼 Work"
@@ -59,7 +68,7 @@ section_header_personal: "## 🏠 Personal"
 section_header_health: "## 🏥 Health"
 ```
 
-When you run `obsidian-logging -c work "Meeting"`, the entry will be logged under the "## 💼 Work" section. If the category doesn't have a corresponding section header defined, entries will be logged to the default section specified by `section_header`. 
+So when you run `obsidian-logging -c work "Meeting"`, the entry will be logged under the "## 💼 Work" section. If the category doesn't have a corresponding section header defined, entries will be logged to the default section specified by `section_header`. 
 
 ## Environment variable 
 
@@ -74,7 +83,7 @@ When invoking `obsidian-logging` without any arguments the entries of the curren
 
 ### No switches
 
-When invoking the command `obsidian-logging This is a log entry` obsidian-logging will append the string `This is a log entry` to the log section of the markdown daily note. 
+When invoking the command `obsidian-logging This is a log entry` obsidian-logging will append the string `This is a log entry` to the default log section of the markdown daily note. 
 A timestamp will be prepended according to the chosen list mode. If list mode is `bullet`, '- HH:mm ' is prepended to the log statement.  If list mode is 'table', the log statement is 
 wrapped in markdown table column separators:  `| HH:mm | log statement|`
 
@@ -119,7 +128,7 @@ obsidian-logging -e
 
 ### -t or --time 
 
-The timestamp may be overridden by specifying the -t/--time HH:mm switch.  Log entries are sorted chronologically before being added to the markdown file. 
+The timestamp may be overridden by specifying the -t/--time HH:mm switch.  Log entries are sorted chronologically before being added to the markdown file. If using the 12 hour clock format (`time_format: 12` in the config file), the format is HH:mmA. For example `08:13PM`. 
 
 
 ### -l  or --list 
@@ -140,7 +149,7 @@ obsidian-logging -l -c unknown         # List entries from default section (fall
 
 ### -b <days> or --back <days>
 
-By specifying `-b <number>` you can go back in time and list the logs `number` of days ago. `obsidian-logging -b 0` is the same as `obsidian-logging -l`
+By specifying `-b <number>` you can go back in time and list the logs `number` of days ago. `obsidian-logging -b 0` is the same as `obsidian-logging -l`.  `-b` can be combined with `-c`. 
 
 ### -e or --edit
 
@@ -148,7 +157,7 @@ Invokes $EDITOR with todays file.  Uses vim if $EDITOR is not set,
 
 ### -f or --time-format 
 
-Specifies 12H or 24H time format.  24H is default.   Overrides `time_format` in obsidian-logging.yaml 
+Specifies 12H or 24H time format.  24H is default.   Overrides `time_format` in obsidian-logging.yaml. Combining 12-hour and 24 hour timestamps when adding logs may yield unpredictable results. 
 
 ### -s or --silent 
 

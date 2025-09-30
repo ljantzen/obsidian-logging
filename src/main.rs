@@ -7,6 +7,7 @@ use std::io::{self, Read};
 #[command(
     name = "obsidian-logging",
     version = env!("CARGO_PKG_VERSION"),
+    disable_version_flag = true,
     about = "A journaling/logging CLI that stores logs in Obsidian markdown files",
     long_about = "obsidian-logging is a command-line tool for creating and managing log entries in Obsidian markdown files. It supports various formats and can be configured through a YAML configuration file.
 
@@ -85,6 +86,10 @@ struct Cli {
     /// The log entry text to add
     #[arg(help = "Log entry text (if not provided, lists entries)")]
     entry: Vec<String>,
+    
+    /// Print version information
+    #[arg(short = 'v', long, help = "Print version information")]
+    version: bool,
 }
 
 #[derive(ValueEnum, Clone)]
@@ -121,6 +126,12 @@ impl From<TimeFormatArg> for TimeFormat {
 
 fn main() {
     let cli = Cli::parse();
+    
+    // Handle version flag
+    if cli.version {
+        println!("obsidian-logging {}", env!("CARGO_PKG_VERSION"));
+        return;
+    }
     
     let mut config = Config::initialize();
     
