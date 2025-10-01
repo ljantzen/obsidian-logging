@@ -18,18 +18,18 @@ exclude = [
 ]
 
 [dependencies]
-chrono = { version = "0.4.31", features = ["serde", "unstable-locales"] }
-clap = { version = "4.4.11", features = ["derive"] }
-serde = { version = "1.0.193", features = ["derive"] }
+chrono = { version = "0.4.42", features = ["serde", "unstable-locales"] }
+clap = { version = "4.5.48", features = ["derive"] }
+serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.29"
-regex = "1.10.2"
+regex = "1.11.3"
 dirs = "5.0.1"
 lazy_static = "1.4"
 
 [dev-dependencies]
 assert_cmd = "2.0.17"
 serial_test = "3.2.0"
-tempfile = "3.10.1"
+tempfile = "3.23.0"
 walkdir = "2.5.0"
 
 [[test]]
