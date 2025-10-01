@@ -21,9 +21,6 @@ updates:
       prefix: "deps"
       prefix-development: "deps-dev"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "rust"
     # Group minor and patch updates together
     groups:
       minor-and-patch:
@@ -53,9 +50,6 @@ updates:
     commit-message:
       prefix: "rust-toolchain"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "rust-toolchain"
 
   # Monitor GitHub Actions dependencies
   - package-ecosystem: "github-actions"
@@ -73,9 +67,6 @@ updates:
     commit-message:
       prefix: "ci"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "github-actions"
     # Group minor and patch updates for actions
     groups:
       minor-and-patch:
