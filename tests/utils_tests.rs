@@ -14,6 +14,7 @@ fn create_test_config() -> Config {
         time_format: TimeFormat::Hour24,
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
+        category_headers: std::collections::HashMap::new(),
     }
 }
 

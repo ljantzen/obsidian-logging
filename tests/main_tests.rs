@@ -177,6 +177,9 @@ fn test_time_option_preserves_all_words() {
 
 #[test]
 fn test_version_flags() {
+    // Get version from Cargo.toml at compile time
+    let expected_version = env!("CARGO_PKG_VERSION");
+    
     // Test --version flag
     let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
     let output = cmd.arg("--version").output().unwrap();
@@ -184,7 +187,7 @@ fn test_version_flags() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("obsidian-logging"));
-    assert!(stdout.contains("1.1.2")); // This should match the version in Cargo.toml
+    assert!(stdout.contains(expected_version));
     
     // Test -v flag
     let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
@@ -193,5 +196,5 @@ fn test_version_flags() {
     assert!(output.status.success());
     let stdout = String::from_utf8(output.stdout).unwrap();
     assert!(stdout.contains("obsidian-logging"));
-    assert!(stdout.contains("1.1.2"));
+    assert!(stdout.contains(expected_version));
 } 

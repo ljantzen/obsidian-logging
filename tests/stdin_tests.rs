@@ -16,6 +16,7 @@ fn setup_test_env() -> (TempDir, Config) {
         time_format: TimeFormat::Hour24,
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
+        category_headers: std::collections::HashMap::new(),
     };
     (temp_dir, config)
 }
@@ -34,7 +35,7 @@ fn test_stdin_functionality() {
     // Process the entry
     let mut args = entry_words.into_iter();
     if let Some(first) = args.next() {
-        handle_plain_entry(first, args, &config, false);
+        handle_plain_entry(first, args, &config, false, None);
     }
 
     // Verify the entry was written
@@ -56,7 +57,7 @@ fn test_stdin_with_time_override() {
     // Process the entry with time override (simulating -t 14:30)
     let mut time_args = vec!["14:30".to_string()];
     time_args.extend(entry_words);
-    handle_with_time(time_args.into_iter(), &config, false);
+    handle_with_time(time_args.into_iter(), &config, false, None);
 
     // Verify the entry was written with the correct time
     let content = fs::read_to_string(&file_path).unwrap();
@@ -79,7 +80,7 @@ fn test_stdin_empty_input() {
     if !entry_words.is_empty() {
         let mut args = entry_words.into_iter();
         if let Some(first) = args.next() {
-            handle_plain_entry(first, args, &config, false);
+            handle_plain_entry(first, args, &config, false, None);
         }
     }
 
