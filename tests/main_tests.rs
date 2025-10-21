@@ -40,6 +40,7 @@ fn setup_test_env() -> (PathBuf, Config) {
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
         category_headers: std::collections::HashMap::new(),
+        phrases: std::collections::HashMap::new(),
     };
     
     let config_path = config_dir_path.join("obsidian-logging.yaml");

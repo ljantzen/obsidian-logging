@@ -163,6 +163,7 @@ pub struct Config {
     pub time_label: String,
     pub event_label: String,
     pub category_headers: std::collections::HashMap<String, String>,
+    pub phrases: std::collections::HashMap<String, String>,
 }
 
 fn default_time_format() -> TimeFormat {
@@ -208,6 +209,7 @@ impl<'de> Deserialize<'de> for Config {
                 let mut time_label = None;
                 let mut event_label = None;
                 let mut category_headers = std::collections::HashMap::new();
+                let mut phrases = std::collections::HashMap::new();
 
                 while let Some(key) = map.next_key::<String>()? {
                     match key.as_str() {
@@ -265,6 +267,10 @@ impl<'de> Deserialize<'de> for Config {
                             }
                             event_label = Some(map.next_value()?);
                         }
+                        "phrases" => {
+                            let phrases_map: std::collections::HashMap<String, String> = map.next_value()?;
+                            phrases = phrases_map;
+                        }
                         _ => {
                             // Check if this is a category header (starts with "section_header_")
                             if key.starts_with("section_header_") {
@@ -295,6 +301,7 @@ impl<'de> Deserialize<'de> for Config {
                     time_label: time_label.unwrap_or_else(default_time_label),
                     event_label: event_label.unwrap_or_else(default_event_label),
                     category_headers,
+                    phrases,
                 })
             }
         }
@@ -322,6 +329,7 @@ impl Default for Config {
             time_label: default_time_label(),
             event_label: default_event_label(),
             category_headers: std::collections::HashMap::new(),
+            phrases: std::collections::HashMap::new(),
         }
     }
 }

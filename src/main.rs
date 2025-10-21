@@ -17,6 +17,8 @@ USAGE EXAMPLES:
   obsidian-logging -t 14:30 entry    # Add entry with specific time
   obsidian-logging -c work meeting   # Add entry to work category section
   obsidian-logging -c personal gym   # Add entry to personal category section
+  obsidian-logging -p meeting        # Use predefined phrase from config
+  obsidian-logging -p gym -c health  # Use phrase with category
   obsidian-logging -l                # List today's entries
   obsidian-logging -b 1              # List entries from 1 day ago
   obsidian-logging -e                # Edit today's file
@@ -83,6 +85,10 @@ struct Cli {
     #[arg(short = 'c', long, help = "Category for the log entry (uses section_header_<category> from config). Can be specified multiple times. Use 'all' to list all categories.")]
     category: Vec<String>,
     
+    /// Use a predefined phrase from config (shorthand reference)
+    #[arg(short = 'p', long, help = "Use a predefined phrase from config (shorthand reference)")]
+    phrase: Option<String>,
+    
     /// The log entry text to add
     #[arg(help = "Log entry text (if not provided, lists entries)")]
     entry: Vec<String>,
@@ -144,6 +150,20 @@ fn main() {
         config = config.with_time_format(time_format.into());
     }
     
+    // Handle phrase expansion if specified
+    let entry_text = if let Some(phrase_key) = &cli.phrase {
+        if let Some(phrase_value) = config.phrases.get(phrase_key) {
+            phrase_value.clone()
+        } else {
+            eprintln!("Error: Phrase '{}' not found in configuration", phrase_key);
+            std::process::exit(1);
+        }
+    } else if !cli.entry.is_empty() {
+        cli.entry.join(" ")
+    } else {
+        String::new()
+    };
+    
     // Determine the command to execute
     if cli.edit {
         // Edit command
@@ -180,16 +200,16 @@ fn main() {
                 add::handle_plain_entry(first, args, &config, cli.silent, cli.category.first().map(|s| s.as_str()));
             }
         }
-    } else if !cli.entry.is_empty() {
+    } else if !entry_text.is_empty() {
         // Add entry command
         if let Some(time) = cli.time {
             // Handle with specific time - include all entry words
             let mut time_args = vec![time];
-            time_args.extend(cli.entry);
+            time_args.extend(entry_text.split_whitespace().map(|s| s.to_string()));
             add::handle_with_time(time_args.into_iter(), &config, cli.silent, cli.category.first().map(|s| s.as_str()));
         } else {
             // Handle plain entry
-            let mut args = cli.entry.into_iter();
+            let mut args = entry_text.split_whitespace().map(|s| s.to_string());
             if let Some(first) = args.next() {
                 add::handle_plain_entry(first, args, &config, cli.silent, cli.category.first().map(|s| s.as_str()));
             }

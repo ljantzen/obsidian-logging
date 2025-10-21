@@ -29,3 +29,31 @@ time_format: 24
 #   time_label: Tidspunkt # Norwegian
 #   event_label: Hendelse # Norwegian
 # If not specified, defaults to Norwegian labels
+time_label: Tidspunkt
+event_label: Hendelse
+
+# Optional: Common logging phrases with shorthand references
+# Use -p <shorthand> or --phrase <shorthand> to expand these phrases
+phrases:
+  # Work-related phrases
+  meeting: "Team meeting with stakeholders"
+  standup: "Daily standup meeting"
+  review: "Code review session"
+  deploy: "Deployed to production"
+  
+  # Personal phrases
+  gym: "Workout at the gym"
+  run: "Morning run"
+  cook: "Cooking dinner"
+  read: "Reading time"
+  
+  # Health phrases
+  doctor: "Doctor appointment"
+  meds: "Took medication"
+  sleep: "Sleep tracking"
+  
+  # General phrases
+  break: "Coffee break"
+  lunch: "Lunch break"
+  call: "Phone call"
+  email: "Email correspondence"

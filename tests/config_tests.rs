@@ -108,6 +108,7 @@ fn test_load_config_existing() {
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
         category_headers: std::collections::HashMap::new(),
+        phrases: std::collections::HashMap::new(),
     };
 
     let yaml = serde_yaml::to_string(&test_config).unwrap();
@@ -161,6 +162,7 @@ fn test_config_serialization() {
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
         category_headers: std::collections::HashMap::new(),
+        phrases: std::collections::HashMap::new(),
     };
 
     let serialized = serde_yaml::to_string(&config).unwrap();
@@ -216,6 +218,7 @@ fn test_config_with_time_format() {
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
         category_headers: std::collections::HashMap::new(),
+        phrases: std::collections::HashMap::new(),
     };
 
     let config_12h = config.with_time_format(TimeFormat::Hour12);
@@ -238,6 +241,7 @@ fn test_config_with_list_type() {
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
         category_headers: std::collections::HashMap::new(),
+        phrases: std::collections::HashMap::new(),
     };
 
     let config_bullet = config.with_list_type(ListType::Bullet);
@@ -270,6 +274,7 @@ fn test_environment_variable_overrides_config() {
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
         category_headers: std::collections::HashMap::new(),
+        phrases: std::collections::HashMap::new(),
     };
 
     let yaml = serde_yaml::to_string(&test_config).unwrap();

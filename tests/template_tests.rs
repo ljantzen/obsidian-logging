@@ -79,6 +79,7 @@ fn test_get_template_content_with_template() {
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
         category_headers: std::collections::HashMap::new(),
+        phrases: std::collections::HashMap::new(),
     };
 
     let content = get_template_content(&config);
@@ -99,6 +100,7 @@ fn test_get_template_content_no_template() {
         time_label: "Tidspunkt".to_string(),
         event_label: "Hendelse".to_string(),
         category_headers: std::collections::HashMap::new(),
+        phrases: std::collections::HashMap::new(),
     };
 
     let content = get_template_content(&config);
