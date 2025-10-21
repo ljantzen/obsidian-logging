@@ -178,6 +178,27 @@ fn default_event_label() -> String {
     "Hendelse".to_string()
 }
 
+impl Config {
+    /// Get the conjunction word based on the configured locale
+    pub fn get_conjunction(&self) -> &'static str {
+        match self.locale.as_deref() {
+            Some("no") | Some("nb") | Some("nn") => "og",
+            Some("da") => "og",
+            Some("sv") => "och",
+            Some("de") => "und",
+            Some("fr") => "et",
+            Some("es") => "y",
+            Some("it") => "e",
+            Some("pt") => "e",
+            Some("ru") => "и",
+            Some("ja") => "と",
+            Some("ko") => "와",
+            Some("zh") => "和",
+            _ => "and", // Default to English
+        }
+    }
+}
+
 impl<'de> Deserialize<'de> for Config {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

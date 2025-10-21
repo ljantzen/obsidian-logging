@@ -16,7 +16,7 @@ template_path: ~/.config/obsidian-logging/template.md
 time_format: 24
 # Optional: Specify locale for weekday names
 # Examples:
-#   locale: en_US    # English
+locale: en_US    # English
 #   locale: nb_NO    # Norwegian Bokmål
 #   locale: de_DE    # German
 #   locale: fr_FR    # French
@@ -32,8 +32,13 @@ time_format: 24
 time_label: Tidspunkt
 event_label: Hendelse
 
+# Note: Conjunction for {#} placeholder is automatically selected based on locale
+# Supported locales: no/nb/nn (og), da (og), sv (och), de (und), fr (et), es (y), it (e), pt (e), ru (и), ja (と), ko (와), zh (和)
+# Defaults to "and" for English or unsupported locales
+
 # Optional: Common logging phrases with shorthand references
 # Use -p <shorthand> or --phrase <shorthand> to expand these phrases
+# Supports argument expansion with placeholders: {0}, {1}, {2}, etc. for specific arguments, {*} for all arguments, or {#} for comma-separated lists
 phrases:
   # Work-related phrases
   meeting: "Team meeting with stakeholders"
@@ -57,3 +62,49 @@ phrases:
   lunch: "Lunch break"
   call: "Phone call"
   email: "Email correspondence"
+  
+  # Phrases with argument expansion
+  # Use: obsidian-logging -p meeting John Smith
+  # Result: "Team meeting with John Smith"
+  meeting_with: "Team meeting with {*}"
+  
+  # Use: obsidian-logging -p call John
+  # Result: "Phone call with John"
+  call_with: "Phone call with {0}"
+  
+  # Use: obsidian-logging -p doctor Dr. Smith
+  # Result: "Doctor appointment with Dr. Smith"
+  doctor_with: "Doctor appointment with {0}"
+  
+  # Use: obsidian-logging -p project Project Alpha
+  # Result: "Working on Project Alpha"
+  project: "Working on {0}"
+  
+  # Use: obsidian-logging -p exercise Running 5km
+  # Result: "Exercise: Running 5km"
+  exercise: "Exercise: {*}"
+  
+  # Use: obsidian-logging -p travel Paris
+  # Result: "Travel to Paris"
+  travel: "Travel to {0}"
+  
+  # Use: obsidian-logging -p food Pizza with friends
+  # Result: "Ate Pizza with friends"
+  food: "Ate {*}"
+  
+  # Phrases with {#} placeholder for comma-separated lists
+  # Use: obsidian-logging -p meeting_with John Jane
+  # Result: "Team meeting with John and Jane"
+  meeting_with: "Team meeting with {#}"
+  
+  # Use: obsidian-logging -p call_with Alice Bob Charlie
+  # Result: "Phone call with Alice, Bob and Charlie"
+  call_with: "Phone call with {#}"
+  
+  # Use: obsidian-logging -p project_with Frontend Backend Database
+  # Result: "Working on Frontend, Backend and Database"
+  project_with: "Working on {#}"
+  
+  # Use: obsidian-logging -p exercise_with Running Swimming Cycling
+  # Result: "Exercise: Running, Swimming and Cycling"
+  exercise_with: "Exercise: {#}"

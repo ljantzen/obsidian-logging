@@ -68,7 +68,64 @@ section_header_personal: "## 🏠 Personal"
 section_header_health: "## 🏥 Health"
 ```
 
-So when you run `obsidian-logging -c work "Meeting"`, the entry will be logged under the "## 💼 Work" section. If the category doesn't have a corresponding section header defined, entries will be logged to the default section specified by `section_header`. 
+So when you run `obsidian-logging -c work "Meeting"`, the entry will be logged under the "## 💼 Work" section. If the category doesn't have a corresponding section header defined, entries will be logged to the default section specified by `section_header`.
+
+### Predefined Phrases
+
+You can define common logging phrases in your configuration file to use with the `-p` or `--phrase` option. This allows you to create shorthand references for frequently used log entries.
+
+**Basic phrase configuration:**
+```yaml
+phrases:
+  meeting: "Team meeting with stakeholders"
+  gym: "Workout at the gym"
+  lunch: "Lunch break"
+  doctor: "Doctor appointment"
+```
+
+**Phrases with argument expansion:**
+```yaml
+# Conjunction for {#} placeholder is automatically selected based on locale
+# Supported locales: no/nb/nn (og), da (og), sv (och), de (und), fr (et), es (y), it (e), pt (e), ru (и), ja (と), ko (와), zh (和)
+# Defaults to "and" for English or unsupported locales
+
+phrases:
+  # Simple phrases
+  meeting: "Team meeting with stakeholders"
+  gym: "Workout at the gym"
+  
+  # Phrases with argument expansion
+  meeting_with: "Team meeting with {*}"           # All arguments
+  call_with: "Phone call with {0}"               # First argument only
+  project: "Working on {0}"                     # First argument only
+  exercise: "Exercise: {*}"                     # All arguments
+  travel: "Travel to {0}"                       # First argument only
+  food: "Ate {*}"                               # All arguments
+  
+  # Phrases with {#} placeholder for comma-separated lists
+  meeting_with: "Team meeting with {#}"          # "John and Jane" or "John, Jane and Bob"
+  call_with: "Phone call with {#}"              # "Alice and Bob" or "Alice, Bob and Charlie"
+  project_with: "Working on {#}"                # "Frontend and Backend"
+  exercise_with: "Exercise: {#}"                # "Running and Swimming"
+```
+
+**Usage examples:**
+```bash
+# Basic phrases
+obsidian-logging -p meeting
+obsidian-logging -p gym -c health
+
+# Phrases with arguments
+obsidian-logging -p meeting_with John Smith     # "Team meeting with John Smith"
+obsidian-logging -p call_with Alice            # "Phone call with Alice"
+obsidian-logging -p project "Project Alpha"   # "Working on Project Alpha"
+obsidian-logging -p exercise "Running 5km"    # "Exercise: Running 5km"
+
+# Phrases with {#} placeholder for comma-separated lists
+obsidian-logging -p meeting_with John Jane        # "Team meeting with John and Jane"
+obsidian-logging -p call_with Alice Bob Charlie  # "Phone call with Alice, Bob and Charlie"
+obsidian-logging -p project_with Frontend Backend # "Working on Frontend and Backend"
+``` 
 
 ## Environment variable 
 
@@ -106,6 +163,12 @@ obsidian-logging -c health "Annual checkup scheduled"
 
 # Combine category with time override
 obsidian-logging -c work -t 9:00 "Daily standup"
+
+# Use predefined phrases
+obsidian-logging -p meeting                    # Basic phrase
+obsidian-logging -p gym -c health             # Phrase with category
+obsidian-logging -p meeting_with John Smith   # Phrase with arguments
+obsidian-logging -p call_with Alice -t 14:30 # Phrase with arguments and time
 
 # Read from stdin (useful for piping)
 echo "Quick note" | obsidian-logging -S
@@ -194,6 +257,35 @@ obsidian-logging -c health "Doctor appointment"
 obsidian-logging -l -c work                    # List work entries only
 obsidian-logging -l -c work -c personal        # List work and personal entries
 obsidian-logging -l -c all                     # List entries from all categories
+```
+
+### -p or --phrase
+Use a predefined phrase from the configuration file with optional argument expansion. This allows you to define common logging phrases in your config and reference them with shorthand.
+
+**Argument Expansion Support:**
+- `{0}`, `{1}`, `{2}`, etc. - Replace with specific argument by index
+- `{*}` - Replace with all arguments joined by spaces
+- `{#}` - Replace with all arguments in comma-separated list with proper conjunction
+
+Examples:
+```bash
+# Basic phrase usage (no arguments)
+obsidian-logging -p meeting
+obsidian-logging -p gym -c health
+
+# Phrase with argument expansion
+obsidian-logging -p meeting_with John Smith        # "Team meeting with John Smith"
+obsidian-logging -p call_with Alice               # "Phone call with Alice"
+obsidian-logging -p project "Project Alpha"      # "Working on Project Alpha"
+
+# Phrase with {#} placeholder for comma-separated lists
+obsidian-logging -p meeting_with John Jane        # "Team meeting with John and Jane"
+obsidian-logging -p call_with Alice Bob Charlie  # "Phone call with Alice, Bob and Charlie"
+obsidian-logging -p project_with Frontend Backend # "Working on Frontend and Backend"
+
+# Combine with other options
+obsidian-logging -p meeting_with John -t 14:30    # With specific time
+obsidian-logging -p doctor_with "Dr. Smith" -c health  # With category
 ``` 
 
 

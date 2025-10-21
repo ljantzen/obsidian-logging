@@ -19,6 +19,8 @@ USAGE EXAMPLES:
   obsidian-logging -c personal gym   # Add entry to personal category section
   obsidian-logging -p meeting        # Use predefined phrase from config
   obsidian-logging -p gym -c health  # Use phrase with category
+  obsidian-logging -p meeting John   # Use phrase with argument expansion
+  obsidian-logging -p call {0}       # Use phrase with placeholder {0}
   obsidian-logging -l                # List today's entries
   obsidian-logging -b 1              # List entries from 1 day ago
   obsidian-logging -e                # Edit today's file
@@ -86,7 +88,8 @@ struct Cli {
     category: Vec<String>,
     
     /// Use a predefined phrase from config (shorthand reference)
-    #[arg(short = 'p', long, help = "Use a predefined phrase from config (shorthand reference)")]
+    /// Supports argument expansion with placeholders: {0}, {1}, {2}, etc. for specific arguments, or {*} for all arguments
+    #[arg(short = 'p', long, help = "Use a predefined phrase from config (shorthand reference). Supports argument expansion with placeholders: {0}, {1}, {2}, etc. for specific arguments, or {*} for all arguments")]
     phrase: Option<String>,
     
     /// The log entry text to add
@@ -130,6 +133,138 @@ impl From<TimeFormatArg> for TimeFormat {
     }
 }
 
+/// Expands argument placeholders in a phrase with actual CLI arguments.
+/// 
+/// Supports placeholders like {0}, {1}, {2}, etc. where the number corresponds
+/// to the argument index. Also supports {*} to insert all remaining arguments
+/// and {#} to insert all arguments with comma separation and proper conjunction.
+/// 
+/// # Arguments
+/// 
+/// * `phrase` - The phrase template with placeholders
+/// * `args` - The CLI arguments to substitute
+/// * `config` - The configuration containing conjunction setting
+/// 
+/// # Returns
+/// 
+/// The expanded phrase with arguments substituted
+fn expand_phrase_arguments(phrase: &str, args: &[String], config: &Config) -> String {
+    let mut result = phrase.to_string();
+    
+    // Replace {#} with comma-separated list with proper conjunction
+    if result.contains("{#}") {
+        let formatted_args = if args.is_empty() {
+            String::new()
+        } else if args.len() == 1 {
+            args[0].clone()
+        } else if args.len() == 2 {
+            format!("{} {} {}", args[0], config.get_conjunction(), args[1])
+        } else {
+            let mut formatted = String::new();
+            for (i, arg) in args.iter().enumerate() {
+                if i > 0 {
+                    if i == args.len() - 1 {
+                        formatted.push_str(&format!(" {} {}", config.get_conjunction(), arg));
+                    } else {
+                        formatted.push_str(&format!(", {}", arg));
+                    }
+                } else {
+                    formatted.push_str(arg);
+                }
+            }
+            formatted
+        };
+        result = result.replace("{#}", &formatted_args);
+    }
+    
+    // Replace {*} with all arguments joined by spaces
+    if result.contains("{*}") {
+        let all_args = args.join(" ");
+        result = result.replace("{*}", &all_args);
+    }
+    
+    // Replace numbered placeholders {0}, {1}, {2}, etc.
+    for (i, arg) in args.iter().enumerate() {
+        let placeholder = format!("{{{}}}", i);
+        result = result.replace(&placeholder, arg);
+    }
+    
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_expand_phrase_arguments() {
+        use obsidian_logging::config::Config;
+        use std::collections::HashMap;
+        
+        let config = Config {
+            vault: "".to_string(),
+            file_path_format: "".to_string(),
+            section_header: "".to_string(),
+            list_type: obsidian_logging::config::ListType::Bullet,
+            template_path: None,
+            locale: None,
+            time_format: obsidian_logging::config::TimeFormat::Hour24,
+            time_label: "".to_string(),
+            event_label: "".to_string(),
+            category_headers: HashMap::new(),
+            phrases: HashMap::new(),
+        };
+        
+        // Test basic expansion
+        let phrase = "Hello {0}";
+        let args = vec!["World".to_string()];
+        let result = expand_phrase_arguments(phrase, &args, &config);
+        assert_eq!(result, "Hello World");
+
+        // Test multiple arguments
+        let phrase = "Meeting with {0} and {1}";
+        let args = vec!["John".to_string(), "Jane".to_string()];
+        let result = expand_phrase_arguments(phrase, &args, &config);
+        assert_eq!(result, "Meeting with John and Jane");
+
+        // Test {*} expansion
+        let phrase = "All arguments: {*}";
+        let args = vec!["arg1".to_string(), "arg2".to_string(), "arg3".to_string()];
+        let result = expand_phrase_arguments(phrase, &args, &config);
+        assert_eq!(result, "All arguments: arg1 arg2 arg3");
+
+        // Test {#} expansion with two items
+        let phrase = "Meeting with {#}";
+        let args = vec!["John".to_string(), "Jane".to_string()];
+        let result = expand_phrase_arguments(phrase, &args, &config);
+        assert_eq!(result, "Meeting with John and Jane");
+
+        // Test {#} expansion with three items
+        let phrase = "Meeting with {#}";
+        let args = vec!["John".to_string(), "Jane".to_string(), "Bob".to_string()];
+        let result = expand_phrase_arguments(phrase, &args, &config);
+        assert_eq!(result, "Meeting with John, Jane and Bob");
+
+        // Test {#} expansion with one item
+        let phrase = "Meeting with {#}";
+        let args = vec!["John".to_string()];
+        let result = expand_phrase_arguments(phrase, &args, &config);
+        assert_eq!(result, "Meeting with John");
+
+        // Test mixed placeholders
+        let phrase = "First: {0}, All: {*}";
+        let args = vec!["first".to_string(), "second".to_string()];
+        let result = expand_phrase_arguments(phrase, &args, &config);
+        assert_eq!(result, "First: first, All: first second");
+
+        // Test no placeholders
+        let phrase = "No placeholders here";
+        let args = vec!["ignored".to_string()];
+        let result = expand_phrase_arguments(phrase, &args, &config);
+        assert_eq!(result, "No placeholders here");
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
     
@@ -153,7 +288,8 @@ fn main() {
     // Handle phrase expansion if specified
     let entry_text = if let Some(phrase_key) = &cli.phrase {
         if let Some(phrase_value) = config.phrases.get(phrase_key) {
-            phrase_value.clone()
+            // Expand arguments in the phrase
+            expand_phrase_arguments(phrase_value, &cli.entry, &config)
         } else {
             eprintln!("Error: Phrase '{}' not found in configuration", phrase_key);
             std::process::exit(1);

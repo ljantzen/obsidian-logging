@@ -235,3 +235,308 @@ phrases:
     let content = fs::read_to_string(&file_path).unwrap();
     assert!(content.contains("Team meeting"));
 }
+
+#[test]
+fn test_phrase_argument_expansion_basic() {
+    let (temp_dir, config) = setup_test_env_with_phrases();
+    
+    // Create the config file
+    let config_dir = if cfg!(windows) {
+        temp_dir.path().join("obsidian-logging")
+    } else {
+        temp_dir.path().join(".config").join("obsidian-logging")
+    };
+    fs::create_dir_all(&config_dir).unwrap();
+    
+    let config_path = config_dir.join("obsidian-logging.yaml");
+    let yaml = serde_yaml::to_string(&config).unwrap();
+    fs::write(&config_path, yaml).unwrap();
+    
+    // Set environment variables
+    std::env::set_var("OBSIDIAN_VAULT_DIR", temp_dir.path().to_str().unwrap());
+    if cfg!(windows) {
+        std::env::set_var("APPDATA", temp_dir.path().to_str().unwrap());
+    } else {
+        std::env::set_var("HOME", temp_dir.path().to_str().unwrap());
+    }
+    
+    // Test phrase expansion with arguments
+    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    cmd.args(&["-p", "meeting", "John", "Smith"]);
+    
+    let output = cmd.output().unwrap();
+    assert!(output.status.success());
+    
+    // Check that the phrase was expanded in the log file
+    let today = chrono::Local::now().date_naive();
+    let file_path = temp_dir.path().join(format!("{}.md", today));
+    assert!(file_path.exists());
+    
+    let content = fs::read_to_string(&file_path).unwrap();
+    assert!(content.contains("Team meeting with stakeholders"));
+}
+
+#[test]
+fn test_phrase_argument_expansion_with_placeholders() {
+    let temp_dir = TempDir::new().unwrap();
+    let mut phrases = HashMap::new();
+    phrases.insert("meeting_with".to_string(), "Team meeting with {*}".to_string());
+    phrases.insert("call_with".to_string(), "Phone call with {0}".to_string());
+    phrases.insert("project".to_string(), "Working on {0}".to_string());
+    
+    let config = Config {
+        vault: temp_dir.path().to_str().unwrap().to_string(),
+        file_path_format: "{date}.md".to_string(),
+        section_header: "## Test".to_string(),
+        list_type: ListType::Bullet,
+        template_path: None,
+        locale: None,
+        time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
+        category_headers: HashMap::new(),
+        phrases,
+    };
+    
+    // Create the config file
+    let config_dir = if cfg!(windows) {
+        temp_dir.path().join("obsidian-logging")
+    } else {
+        temp_dir.path().join(".config").join("obsidian-logging")
+    };
+    fs::create_dir_all(&config_dir).unwrap();
+    
+    let config_path = config_dir.join("obsidian-logging.yaml");
+    let yaml = serde_yaml::to_string(&config).unwrap();
+    fs::write(&config_path, yaml).unwrap();
+    
+    // Set environment variables
+    std::env::set_var("OBSIDIAN_VAULT_DIR", temp_dir.path().to_str().unwrap());
+    if cfg!(windows) {
+        std::env::set_var("APPDATA", temp_dir.path().to_str().unwrap());
+    } else {
+        std::env::set_var("HOME", temp_dir.path().to_str().unwrap());
+    }
+    
+    // Test {*} placeholder expansion
+    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    cmd.args(&["-p", "meeting_with", "John", "Smith"]);
+    
+    let output = cmd.output().unwrap();
+    assert!(output.status.success());
+    
+    let today = chrono::Local::now().date_naive();
+    let file_path = temp_dir.path().join(format!("{}.md", today));
+    assert!(file_path.exists());
+    
+    let content = fs::read_to_string(&file_path).unwrap();
+    assert!(content.contains("Team meeting with John Smith"));
+    
+    // Test {0} placeholder expansion
+    let mut cmd2 = Command::cargo_bin("obsidian-logging").unwrap();
+    cmd2.args(&["-p", "call_with", "Alice"]);
+    
+    let output2 = cmd2.output().unwrap();
+    assert!(output2.status.success());
+    
+    let content2 = fs::read_to_string(&file_path).unwrap();
+    assert!(content2.contains("Phone call with Alice"));
+    
+    // Test project placeholder
+    let mut cmd3 = Command::cargo_bin("obsidian-logging").unwrap();
+    cmd3.args(&["-p", "project", "Project Alpha"]);
+    
+    let output3 = cmd3.output().unwrap();
+    assert!(output3.status.success());
+    
+    let content3 = fs::read_to_string(&file_path).unwrap();
+    assert!(content3.contains("Working on Project Alpha"));
+}
+
+#[test]
+fn test_phrase_argument_expansion_with_time() {
+    let temp_dir = TempDir::new().unwrap();
+    let mut phrases = HashMap::new();
+    phrases.insert("meeting_with".to_string(), "Team meeting with {*}".to_string());
+    
+    let config = Config {
+        vault: temp_dir.path().to_str().unwrap().to_string(),
+        file_path_format: "{date}.md".to_string(),
+        section_header: "## Test".to_string(),
+        list_type: ListType::Bullet,
+        template_path: None,
+        locale: None,
+        time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
+        category_headers: HashMap::new(),
+        phrases,
+    };
+    
+    // Create the config file
+    let config_dir = if cfg!(windows) {
+        temp_dir.path().join("obsidian-logging")
+    } else {
+        temp_dir.path().join(".config").join("obsidian-logging")
+    };
+    fs::create_dir_all(&config_dir).unwrap();
+    
+    let config_path = config_dir.join("obsidian-logging.yaml");
+    let yaml = serde_yaml::to_string(&config).unwrap();
+    fs::write(&config_path, yaml).unwrap();
+    
+    // Set environment variables
+    std::env::set_var("OBSIDIAN_VAULT_DIR", temp_dir.path().to_str().unwrap());
+    if cfg!(windows) {
+        std::env::set_var("APPDATA", temp_dir.path().to_str().unwrap());
+    } else {
+        std::env::set_var("HOME", temp_dir.path().to_str().unwrap());
+    }
+    
+    // Test phrase expansion with time
+    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    cmd.args(&["-p", "meeting_with", "John", "Smith", "-t", "14:30"]);
+    
+    let output = cmd.output().unwrap();
+    assert!(output.status.success());
+    
+    let today = chrono::Local::now().date_naive();
+    let file_path = temp_dir.path().join(format!("{}.md", today));
+    assert!(file_path.exists());
+    
+    let content = fs::read_to_string(&file_path).unwrap();
+    assert!(content.contains("Team meeting with John Smith"));
+    assert!(content.contains("14:30"));
+}
+
+#[test]
+fn test_phrase_hash_placeholder_expansion() {
+    let temp_dir = TempDir::new().unwrap();
+    let mut phrases = HashMap::new();
+    phrases.insert("meeting_with".to_string(), "Team meeting with {#}".to_string());
+    phrases.insert("call_with".to_string(), "Phone call with {#}".to_string());
+    phrases.insert("project_with".to_string(), "Working on {#}".to_string());
+    
+    let config = Config {
+        vault: temp_dir.path().to_str().unwrap().to_string(),
+        file_path_format: "{date}.md".to_string(),
+        section_header: "## Test".to_string(),
+        list_type: ListType::Bullet,
+        template_path: None,
+        locale: None,
+        time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
+        category_headers: HashMap::new(),
+        phrases,
+    };
+    
+    // Create the config file
+    let config_dir = if cfg!(windows) {
+        temp_dir.path().join("obsidian-logging")
+    } else {
+        temp_dir.path().join(".config").join("obsidian-logging")
+    };
+    fs::create_dir_all(&config_dir).unwrap();
+    
+    let config_path = config_dir.join("obsidian-logging.yaml");
+    let yaml = serde_yaml::to_string(&config).unwrap();
+    fs::write(&config_path, yaml).unwrap();
+    
+    // Set environment variables
+    std::env::set_var("OBSIDIAN_VAULT_DIR", temp_dir.path().to_str().unwrap());
+    if cfg!(windows) {
+        std::env::set_var("APPDATA", temp_dir.path().to_str().unwrap());
+    } else {
+        std::env::set_var("HOME", temp_dir.path().to_str().unwrap());
+    }
+    
+    // Test {#} placeholder with two items
+    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    cmd.args(&["-p", "meeting_with", "John", "Jane"]);
+    
+    let output = cmd.output().unwrap();
+    assert!(output.status.success());
+    
+    let today = chrono::Local::now().date_naive();
+    let file_path = temp_dir.path().join(format!("{}.md", today));
+    assert!(file_path.exists());
+    
+    let content = fs::read_to_string(&file_path).unwrap();
+    assert!(content.contains("Team meeting with John and Jane"));
+    
+    // Test {#} placeholder with three items
+    let mut cmd2 = Command::cargo_bin("obsidian-logging").unwrap();
+    cmd2.args(&["-p", "call_with", "Alice", "Bob", "Charlie"]);
+    
+    let output2 = cmd2.output().unwrap();
+    assert!(output2.status.success());
+    
+    let content2 = fs::read_to_string(&file_path).unwrap();
+    assert!(content2.contains("Phone call with Alice, Bob and Charlie"));
+    
+    // Test {#} placeholder with one item
+    let mut cmd3 = Command::cargo_bin("obsidian-logging").unwrap();
+    cmd3.args(&["-p", "project_with", "Frontend"]);
+    
+    let output3 = cmd3.output().unwrap();
+    assert!(output3.status.success());
+    
+    let content3 = fs::read_to_string(&file_path).unwrap();
+    assert!(content3.contains("Working on Frontend"));
+}
+
+#[test]
+fn test_phrase_hash_placeholder_with_norwegian_conjunction() {
+    let temp_dir = TempDir::new().unwrap();
+    let mut phrases = HashMap::new();
+    phrases.insert("meeting_with".to_string(), "Møte med {#}".to_string());
+    
+    let config = Config {
+        vault: temp_dir.path().to_str().unwrap().to_string(),
+        file_path_format: "{date}.md".to_string(),
+        section_header: "## Test".to_string(),
+        list_type: ListType::Bullet,
+        template_path: None,
+        locale: Some("no".to_string()),
+        time_format: TimeFormat::Hour24,
+        time_label: "Tidspunkt".to_string(),
+        event_label: "Hendelse".to_string(),
+        category_headers: HashMap::new(),
+        phrases,
+    };
+    
+    // Create the config file
+    let config_dir = if cfg!(windows) {
+        temp_dir.path().join("obsidian-logging")
+    } else {
+        temp_dir.path().join(".config").join("obsidian-logging")
+    };
+    fs::create_dir_all(&config_dir).unwrap();
+    
+    let config_path = config_dir.join("obsidian-logging.yaml");
+    let yaml = serde_yaml::to_string(&config).unwrap();
+    fs::write(&config_path, yaml).unwrap();
+    
+    // Set environment variables
+    std::env::set_var("OBSIDIAN_VAULT_DIR", temp_dir.path().to_str().unwrap());
+    if cfg!(windows) {
+        std::env::set_var("APPDATA", temp_dir.path().to_str().unwrap());
+    } else {
+        std::env::set_var("HOME", temp_dir.path().to_str().unwrap());
+    }
+    
+    // Test {#} placeholder with Norwegian conjunction
+    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    cmd.args(&["-p", "meeting_with", "John", "Jane"]);
+    
+    let output = cmd.output().unwrap();
+    assert!(output.status.success());
+    
+    let today = chrono::Local::now().date_naive();
+    let file_path = temp_dir.path().join(format!("{}.md", today));
+    assert!(file_path.exists());
+    
+    let content = fs::read_to_string(&file_path).unwrap();
+    assert!(content.contains("Møte med John og Jane"));
+}
