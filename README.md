@@ -6,6 +6,10 @@
 
 This little utility written in Rust makes it possible to log directly to todays daily note from the linux command line. 
 
+## License 
+
+This software is licensed under a combined MIT and SPPL license.  It is basically a MIT license, but in order to be compliant you need to send me a postcard.  Details in LICENSE.md
+
 ## Installation
 
 You can install obsidian-logging using cargo:
