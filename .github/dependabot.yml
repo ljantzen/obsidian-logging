@@ -8,7 +8,6 @@ updates:
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
-      update-cooldown: "7d"
       interval: "weekly"
     open-pull-requests-limit: 10
     reviewers:
@@ -36,7 +35,6 @@ updates:
   - package-ecosystem: "rust-toolchain"
     directory: "/"
     schedule:
-      update-cooldown: "7d"
       interval: "weekly"
     open-pull-requests-limit: 5
     reviewers:
@@ -51,7 +49,6 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      update-cooldown: "7d"
       interval: "weekly"
     open-pull-requests-limit: 5
     reviewers:
