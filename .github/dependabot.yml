@@ -8,10 +8,8 @@ updates:
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
+      update-cooldown: "7d"
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "UTC"
     open-pull-requests-limit: 10
     reviewers:
       - "ljantzen"
@@ -38,10 +36,8 @@ updates:
   - package-ecosystem: "rust-toolchain"
     directory: "/"
     schedule:
+      update-cooldown: "7d"
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
       - "ljantzen"
@@ -55,10 +51,8 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
+      update-cooldown: "7d"
       interval: "weekly"
-      day: "monday"
-      time: "09:00"
-      timezone: "UTC"
     open-pull-requests-limit: 5
     reviewers:
       - "ljantzen"
@@ -75,3 +69,4 @@ updates:
         update-types:
           - "minor"
           - "patch"
+
