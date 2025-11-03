@@ -2,8 +2,7 @@ use std::fs;
 use tempfile::TempDir;
 use obsidian_logging::config::{Config, ListType, TimeFormat};
 use std::collections::HashMap;
-use assert_cmd::prelude::*;
-use std::process::Command;
+use assert_cmd::cargo;
 use std::sync::Mutex;
 
 // Global mutex to ensure environment variable changes are atomic
@@ -96,7 +95,7 @@ fn test_phrase_expansion_basic() {
         fs::write(&config_path, yaml).unwrap();
         
         // Test phrase expansion
-        let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd.args(&["-p", "meeting"]);
         
         let output = cmd.output().unwrap();
@@ -130,7 +129,7 @@ fn test_phrase_expansion_with_category() {
         fs::write(&config_path, yaml).unwrap();
         
         // Test phrase expansion with category
-        let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd.args(&["-p", "gym", "-c", "health"]);
         
         let output = cmd.output().unwrap();
@@ -164,7 +163,7 @@ fn test_phrase_expansion_with_time() {
         fs::write(&config_path, yaml).unwrap();
         
         // Test phrase expansion with time
-        let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd.args(&["-p", "lunch", "-t", "12:30"]);
         
         let output = cmd.output().unwrap();
@@ -199,7 +198,7 @@ fn test_phrase_not_found() {
         fs::write(&config_path, yaml).unwrap();
         
         // Test phrase not found
-        let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd.args(&["-p", "nonexistent"]);
         
         let output = cmd.output().unwrap();
@@ -241,7 +240,7 @@ phrases:
         fs::write(&config_path, config_content).unwrap();
         
         // Test that phrases are loaded correctly
-        let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd.args(&["-p", "meeting"]);
         
         let output = cmd.output().unwrap();
@@ -275,7 +274,7 @@ fn test_phrase_argument_expansion_basic() {
         fs::write(&config_path, yaml).unwrap();
         
         // Test phrase expansion with arguments
-        let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd.args(&["-p", "meeting", "John", "Smith"]);
         
         let output = cmd.output().unwrap();
@@ -327,7 +326,7 @@ fn test_phrase_argument_expansion_with_placeholders() {
     
     with_test_env(&temp_dir, || {
         // Test {*} placeholder expansion
-        let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd.args(&["-p", "meeting_with", "John", "Smith"]);
         
         let output = cmd.output().unwrap();
@@ -341,7 +340,7 @@ fn test_phrase_argument_expansion_with_placeholders() {
         assert!(content.contains("Team meeting with John Smith"));
         
         // Test {0} placeholder expansion
-        let mut cmd2 = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd2 = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd2.args(&["-p", "call_with", "Alice"]);
         
         let output2 = cmd2.output().unwrap();
@@ -351,7 +350,7 @@ fn test_phrase_argument_expansion_with_placeholders() {
         assert!(content2.contains("Phone call with Alice"));
         
         // Test project placeholder
-        let mut cmd3 = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd3 = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd3.args(&["-p", "project", "Project Alpha"]);
         
         let output3 = cmd3.output().unwrap();
@@ -396,7 +395,7 @@ fn test_phrase_argument_expansion_with_time() {
     
     with_test_env(&temp_dir, || {
         // Test phrase expansion with time
-        let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd.args(&["-p", "meeting_with", "John", "Smith", "-t", "14:30"]);
         
         let output = cmd.output().unwrap();
@@ -448,7 +447,7 @@ fn test_phrase_hash_placeholder_expansion() {
     
     with_test_env(&temp_dir, || {
         // Test {#} placeholder with two items
-        let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd.args(&["-p", "meeting_with", "John", "Jane"]);
         
         let output = cmd.output().unwrap();
@@ -462,7 +461,7 @@ fn test_phrase_hash_placeholder_expansion() {
         assert!(content.contains("Team meeting with John and Jane"));
         
         // Test {#} placeholder with three items
-        let mut cmd2 = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd2 = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd2.args(&["-p", "call_with", "Alice", "Bob", "Charlie"]);
         
         let output2 = cmd2.output().unwrap();
@@ -472,7 +471,7 @@ fn test_phrase_hash_placeholder_expansion() {
         assert!(content2.contains("Phone call with Alice, Bob and Charlie"));
         
         // Test {#} placeholder with one item
-        let mut cmd3 = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd3 = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd3.args(&["-p", "project_with", "Frontend"]);
         
         let output3 = cmd3.output().unwrap();
@@ -517,7 +516,7 @@ fn test_phrase_hash_placeholder_with_norwegian_conjunction() {
     
     with_test_env(&temp_dir, || {
         // Test {#} placeholder with Norwegian conjunction
-        let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+        let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
         cmd.args(&["-p", "meeting_with", "John", "Jane"]);
         
         let output = cmd.output().unwrap();
