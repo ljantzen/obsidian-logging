@@ -3,8 +3,7 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use tempfile::TempDir;
 use obsidian_logging::config::{Config, ListType, TimeFormat};
-use assert_cmd::prelude::*;
-use std::process::Command;
+use assert_cmd::cargo;
 use std::fs;
 use chrono::Datelike;
 use serde_yaml;
@@ -147,7 +146,7 @@ fn test_time_format_with_back_flag() {
 fn test_time_option_preserves_all_words() {
     let (temp_dir, _config) = setup_test_env();
     
-    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
     cmd.env("OBSIDIAN_VAULT_DIR", &temp_dir);
     let output = cmd
         .args(["--time", "14:30", "This", "is", "a", "test", "entry"])
@@ -182,7 +181,7 @@ fn test_version_flags() {
     let expected_version = env!("CARGO_PKG_VERSION");
     
     // Test --version flag
-    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
     let output = cmd.arg("--version").output().unwrap();
     
     assert!(output.status.success());
@@ -191,7 +190,7 @@ fn test_version_flags() {
     assert!(stdout.contains(expected_version));
     
     // Test -v flag
-    let mut cmd = Command::cargo_bin("obsidian-logging").unwrap();
+    let mut cmd = assert_cmd::Command::new(cargo::cargo_bin!("obsidian-logging"));
     let output = cmd.arg("-v").output().unwrap();
     
     assert!(output.status.success());
