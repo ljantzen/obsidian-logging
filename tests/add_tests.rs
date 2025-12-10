@@ -56,7 +56,8 @@ fn test_add_with_time_format() {
     );
 
     let content = fs::read_to_string(&file_path).unwrap();
-    assert!(content.contains("* 02:30:00 PM Another test"));
+    // The second entry gets incremented to 14:30:01 because the first entry is also 14:30:00
+    assert!(content.contains("* 02:30:01 PM Another test"));
 }
 
 #[test]
@@ -88,7 +89,8 @@ fn test_add_with_time_override() {
     handle_with_time(args.into_iter(), &config, false, None);
 
     let content = fs::read_to_string(&file_path).unwrap();
-    assert!(content.contains("* 02:30:00 PM Another test"));
+    // The second entry gets incremented to 14:30:01 because the first entry is also 14:30:00
+    assert!(content.contains("* 02:30:01 PM Another test"));
 }
 
 #[test]
@@ -126,7 +128,8 @@ fn test_add_with_table_format() {
     );
 
     let content = fs::read_to_string(&file_path).unwrap();
-    assert!(content.contains("| 02:30:00 PM | Another test |"));
+    // The second entry gets incremented to 14:30:01 because the first entry is also 14:30:00
+    assert!(content.contains("| 02:30:01 PM | Another test |"));
 }
 
 #[test]

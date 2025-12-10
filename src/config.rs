@@ -133,20 +133,20 @@ impl FromStr for TimeFormat {
     }
 }
 
-impl ToString for ListType {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for ListType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ListType::Bullet => "bullet".to_string(),
-            ListType::Table => "table".to_string(),
+            ListType::Bullet => write!(f, "bullet"),
+            ListType::Table => write!(f, "table"),
         }
     }
 }
 
-impl ToString for TimeFormat {
-    fn to_string(&self) -> String {
+impl std::fmt::Display for TimeFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            TimeFormat::Hour12 => "12".to_string(),
-            TimeFormat::Hour24 => "24".to_string(),
+            TimeFormat::Hour12 => write!(f, "12"),
+            TimeFormat::Hour24 => write!(f, "24"),
         }
     }
 }
@@ -388,12 +388,8 @@ impl Config {
         let config_path = config_dir.join("obsidian-logging.yaml");
 
         // Try to read config file
-        let mut config = if let Ok(config_str) = fs::read_to_string(&config_path) {
-            if let Ok(config) = serde_yaml::from_str(&config_str) {
-                config
-            } else {
-                Config::default()
-            }
+        let mut config: Config = if let Ok(config_str) = fs::read_to_string(&config_path) {
+            serde_yaml::from_str(&config_str).unwrap_or_default()
         } else {
             Config::default()
         };

@@ -19,7 +19,7 @@ fn parse_table_row(line: &str) -> Option<(String, String)> {
 
 /// Parse a bullet entry into (timestamp, entry)
 fn parse_bullet_entry(line: &str) -> Option<(String, String)> {
-    let content = line.trim_start_matches(|c| c == '-' || c == '*' || c == ' ');
+    let content = line.trim_start_matches(['-', '*', ' ']);
 
     // Try to find a valid time pattern at the beginning
     // This handles both 24-hour (HH:MM:SS) and 12-hour (HH:MM:SS AM/PM) formats
@@ -137,9 +137,7 @@ pub fn handle_plain_entry_with_time(
 
     // For new files, always use the config list type
     // For existing files, use detected type unless there are no entries
-    let effective_type = if is_new_file {
-        config.list_type.clone()
-    } else if entries.is_empty() {
+    let effective_type = if is_new_file || entries.is_empty() {
         config.list_type.clone()
     } else {
         detected_type
@@ -176,7 +174,7 @@ pub fn handle_plain_entry_with_time(
         .any(|(existing_time, _)| *existing_time == final_time)
     {
         // Increment by 1 second using chrono's Duration
-        final_time = final_time + Duration::seconds(1);
+        final_time += Duration::seconds(1);
     }
 
     // Combine existing entries (with their parsed timestamps) and the new entry,

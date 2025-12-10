@@ -143,7 +143,7 @@ fn parse_entry(entry: &str) -> (String, String) {
         }
     } else if entry.starts_with(['*', '-']) {
         // Parse bullet format - handle both 24-hour and 12-hour time formats
-        let content = entry.trim_start_matches(|c| c == '-' || c == '*' || c == ' ');
+        let content = entry.trim_start_matches(['-', '*', ' ']);
 
         // Try to find a valid time pattern at the beginning
         let time_patterns = [
@@ -199,8 +199,8 @@ pub fn extract_log_entries(
     let mut in_section = false;
     let mut found_section = false;
 
-    let mut lines = content.lines().peekable();
-    while let Some(line) = lines.next() {
+    let lines = content.lines().peekable();
+    for line in lines {
         if line.starts_with(section_header) {
             found_section = true;
             in_section = true;
@@ -313,10 +313,11 @@ pub fn extract_log_entries(
         }
 
         entries = converted_entries;
-    } else {
+    } else if *list_type == ListType::Table
+        && found_type == ListType::Table
+        && include_header
+    {
         // Format hasn't changed, but ensure table format has proper header
-        if *list_type == ListType::Table && found_type == ListType::Table {
-            if include_header {
                 // Rebuild table with proper header and separator
                 let mut max_time_width = config.time_label.len();
                 let mut max_entry_width = config.event_label.len();
@@ -352,9 +353,7 @@ pub fn extract_log_entries(
                 }
 
                 entries = rebuilt_entries;
-            }
-            // If include_header is false, keep original entries as-is
-        }
+        // If include_header is false, keep original entries as-is
         // For bullet format, entries are already in the correct format
     }
 
