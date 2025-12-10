@@ -6,6 +6,18 @@
 
 This little utility written in Rust makes it possible to log directly to todays daily note from the linux command line. 
 
+## Version 1.3.0 Changes - Timestamp Format Update
+
+**Important:** Starting with version 1.3.0, timestamps now include seconds (HH:mm:ss format instead of HH:mm).
+
+**What this means for you:**
+- New entries will have timestamps with seconds (e.g., `14:30:45` instead of `14:30`)
+- When using the `-t` flag, you can specify seconds: `-t 14:30:45` or omit them: `-t 14:30` (defaults to `:00`)
+- **Existing log files:** When you add a new entry to a file, all existing timestamps in that log section will be automatically reformatted to include seconds (e.g., `14:30` becomes `14:30:00`)
+- Duplicate timestamp detection: If you add an entry with a timestamp that already exists, the seconds will be incremented until a unique timestamp is found
+
+This change ensures better precision and prevents timestamp collisions when logging multiple entries at the same minute.
+
 ## License 
 
 This software is licensed under a combined MIT and SPPL license.  It is basically a MIT license, but in order to be compliant you need to send me a postcard.  Details in LICENSE.md
@@ -145,8 +157,10 @@ When invoking `obsidian-logging` without any arguments the entries of the curren
 ### No switches
 
 When invoking the command `obsidian-logging This is a log entry` obsidian-logging will append the string `This is a log entry` to the default log section of the markdown daily note. 
-A timestamp will be prepended according to the chosen list mode. If list mode is `bullet`, '- HH:mm ' is prepended to the log statement.  If list mode is 'table', the log statement is 
-wrapped in markdown table column separators:  `| HH:mm | log statement|`
+A timestamp will be prepended according to the chosen list mode. If list mode is `bullet`, '- HH:mm:ss ' is prepended to the log statement (e.g., `- 14:30:45 log entry`).  If list mode is 'table', the log statement is 
+wrapped in markdown table column separators:  `| HH:mm:ss | log statement|` (e.g., `| 14:30:45 | log entry |`).
+
+**Note:** Timestamps now include seconds (HH:mm:ss format). When you add a new entry, all existing entries in that log section will be reformatted to include seconds if they don't already have them. This ensures consistency across all entries.
 
 ## Usage Examples
 
@@ -157,8 +171,13 @@ obsidian-logging
 # Add a log entry to the default section
 obsidian-logging "Had lunch with colleagues"
 
-# Add an entry with a specific time
-obsidian-logging -t 14:30 "Team standup meeting"
+# Add an entry with a specific time (seconds default to 00 if not provided)
+obsidian-logging -t 14:30 "Team standup meeting"        # Becomes 14:30:00
+obsidian-logging -t 14:30:45 "Team standup meeting"     # Explicit seconds
+
+# 12-hour format examples
+obsidian-logging -t 2:30 PM "Afternoon meeting"         # Becomes 02:30:00 PM
+obsidian-logging -t 2:30:45 PM "Afternoon meeting"      # Explicit seconds
 
 # Add entries to different categories
 obsidian-logging -c work "Code review completed"
@@ -195,7 +214,15 @@ obsidian-logging -e
 
 ### -t or --time 
 
-The timestamp may be overridden by specifying the -t/--time HH:mm switch.  Log entries are sorted chronologically before being added to the markdown file. If using the 12 hour clock format (`time_format: 12` in the config file), the format is HH:mmA. For example `08:13PM`. 
+The timestamp may be overridden by specifying the `-t/--time` switch. You can provide timestamps in either `HH:mm` or `HH:mm:ss` format. If seconds are not provided, they default to `00`.
+
+**Format examples:**
+- 24-hour format: `14:30` (becomes `14:30:00`) or `14:30:45`
+- 12-hour format: `2:30 PM` (becomes `02:30:00 PM`) or `2:30:45 PM`
+
+Log entries are sorted chronologically before being added to the markdown file. If a timestamp already exists in the log, the seconds will be incremented until a unique timestamp is found.
+
+**Important:** When you add a new entry, all existing entries in that log section will be reformatted to include seconds (HH:mm:ss format) if they don't already have them. This ensures consistency but means existing timestamps without seconds will be modified. 
 
 
 ### -l  or --list 
@@ -302,25 +329,27 @@ With the category functionality, your daily notes can be organized into differen
 
 ## 🕗
 
-* 08:30 Morning coffee
-* 12:00 Lunch break
+* 08:30:00 Morning coffee
+* 12:00:00 Lunch break
 
 ## 💼 Work
 
-* 09:00 Daily standup meeting
-* 10:30 Code review completed
-* 14:00 Client presentation
+* 09:00:00 Daily standup meeting
+* 10:30:00 Code review completed
+* 14:00:00 Client presentation
 
 ## 🏠 Personal
 
-* 18:00 Gym workout - 45 minutes
-* 19:30 Dinner with family
+* 18:00:00 Gym workout - 45 minutes
+* 19:30:00 Dinner with family
 
 ## 🏥 Health
 
-* 11:00 Doctor appointment
-* 16:00 Picked up prescription
+* 11:00:00 Doctor appointment
+* 16:00:00 Picked up prescription
 ```
+
+**Note:** All timestamps now include seconds. If you have existing log files with timestamps in `HH:mm` format, they will be automatically reformatted to `HH:mm:ss` format (with `:00` seconds) when you add a new entry to that file.
 
 ## Screenshots
 
