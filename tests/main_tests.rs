@@ -171,8 +171,8 @@ fn test_time_option_preserves_all_words() {
     assert!(file_path.exists());
     let content = fs::read_to_string(&file_path).unwrap();
     
-    // Should contain the full sentence with the specified time
-    assert!(content.contains("14:30 This is a test entry"));
+    // Should contain the full sentence with the specified time (with seconds defaulting to 00)
+    assert!(content.contains("14:30:00 This is a test entry"));
 }
 
 #[test]

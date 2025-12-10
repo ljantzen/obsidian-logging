@@ -36,7 +36,7 @@ fn test_add_with_time_format() {
     handle_plain_entry_with_time(vec!["Test entry".to_string()], Some(time), &config, false, None);
 
     let content = fs::read_to_string(&file_path).unwrap();
-    assert!(content.contains("* 14:30 Test entry"));
+    assert!(content.contains("* 14:30:00 Test entry"));
 
     // Test with 12-hour format
     config.time_format = TimeFormat::Hour12;
@@ -44,7 +44,7 @@ fn test_add_with_time_format() {
     handle_plain_entry_with_time(vec!["Another test".to_string()], Some(time), &config, false, None);
 
     let content = fs::read_to_string(&file_path).unwrap();
-    assert!(content.contains("* 02:30 PM Another test"));
+    assert!(content.contains("* 02:30:00 PM Another test"));
 }
 
 #[test]
@@ -59,7 +59,7 @@ fn test_add_with_time_override() {
     handle_with_time(args.into_iter(), &config, false, None);
 
     let content = fs::read_to_string(&file_path).unwrap();
-    assert!(content.contains("* 14:30 Test entry"));
+    assert!(content.contains("* 14:30:00 Test entry"));
 
     // Test with 12-hour format and 24-hour time input
     config.time_format = TimeFormat::Hour12;
@@ -67,7 +67,7 @@ fn test_add_with_time_override() {
     handle_with_time(args.into_iter(), &config, false, None);
 
     let content = fs::read_to_string(&file_path).unwrap();
-    assert!(content.contains("* 02:30 PM Another test"));
+    assert!(content.contains("* 02:30:00 PM Another test"));
 }
 
 #[test]
@@ -84,7 +84,7 @@ fn test_add_with_table_format() {
 
     let content = fs::read_to_string(&file_path).unwrap();
     assert!(content.contains("| Tidspunkt | Hendelse |"));
-    assert!(content.contains("| 14:30 | Test entry |"));
+    assert!(content.contains("| 14:30:00 | Test entry |"));
 
     // Test with 12-hour format and table
     config.time_format = TimeFormat::Hour12;
@@ -93,7 +93,7 @@ fn test_add_with_table_format() {
     handle_plain_entry_with_time(vec!["Another test".to_string()], Some(time), &config, false, None);
 
     let content = fs::read_to_string(&file_path).unwrap();
-    assert!(content.contains("| 02:30 PM | Another test |"));
+    assert!(content.contains("| 02:30:00 PM | Another test |"));
 }
 
 #[test]
@@ -110,7 +110,7 @@ fn test_add_with_bullet_format() {
     }
     
     // Write initial content
-    let initial_content = "## Test\n\n- 09:00 First entry\n";
+    let initial_content = "## Test\n\n- 09:00:00 First entry\n";
     write(&log_path, initial_content).unwrap();
     
     // Add new log entry

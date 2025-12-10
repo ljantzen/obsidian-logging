@@ -126,11 +126,11 @@ fn test_extract_log_entries_convert_bullet_to_table() {
     let config = create_test_config();
     let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Table, &config, true);
 
-    // Should convert to table format with consistent column widths
+    // Should convert to table format with consistent column widths (with seconds added during reformatting)
     assert_eq!(entries[0], "| Tidspunkt | Hendelse     |");
     assert_eq!(entries[1], "|-----------|--------------|");
-    assert_eq!(entries[2], "| 09:00     | First entry  |");
-    assert_eq!(entries[3], "| 10:30     | Second entry |");
+    assert_eq!(entries[2], "| 09:00:00  | First entry  |");
+    assert_eq!(entries[3], "| 10:30:00  | Second entry |");
 }
 
 #[test]
@@ -144,9 +144,9 @@ fn test_extract_log_entries_convert_table_to_bullet() {
     let config = create_test_config();
     let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
 
-    // Should convert to bullet format
-    assert_eq!(entries[0], "- 09:00 First entry");
-    assert_eq!(entries[1], "- 10:30 Second entry");
+    // Should convert to bullet format (with seconds added during reformatting)
+    assert_eq!(entries[0], "- 09:00:00 First entry");
+    assert_eq!(entries[1], "- 10:30:00 Second entry");
 }
 
 #[test]
@@ -178,24 +178,30 @@ Some content
 
 #[test]
 fn test_format_time_24h() {
-    let time = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
+    let time = NaiveTime::from_hms_opt(14, 30, 45).unwrap();
     let formatted = format_time(time, &TimeFormat::Hour24);
-    assert_eq!(formatted, "14:30");
+    assert_eq!(formatted, "14:30:45");
+    
+    // Test with zero seconds
+    let time_zero = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
+    let formatted_zero = format_time(time_zero, &TimeFormat::Hour24);
+    assert_eq!(formatted_zero, "14:30:00");
 }
 
 #[test]
 fn test_format_time_12h() {
     let test_cases = vec![
-        (0, 30, "12:30 AM"),
-        (1, 30, "01:30 AM"),
-        (11, 30, "11:30 AM"),
-        (12, 30, "12:30 PM"),
-        (13, 30, "01:30 PM"),
-        (23, 30, "11:30 PM"),
+        (0, 30, 0, "12:30:00 AM"),
+        (1, 30, 0, "01:30:00 AM"),
+        (11, 30, 0, "11:30:00 AM"),
+        (12, 30, 0, "12:30:00 PM"),
+        (13, 30, 0, "01:30:00 PM"),
+        (23, 30, 0, "11:30:00 PM"),
+        (14, 30, 45, "02:30:45 PM"),
     ];
 
-    for (hour, minute, expected) in test_cases {
-        let time = NaiveTime::from_hms_opt(hour, minute, 0).unwrap();
+    for (hour, minute, second, expected) in test_cases {
+        let time = NaiveTime::from_hms_opt(hour, minute, second).unwrap();
         let formatted = format_time(time, &TimeFormat::Hour12);
         assert_eq!(formatted, expected);
     }
@@ -203,13 +209,19 @@ fn test_format_time_12h() {
 
 #[test]
 fn test_parse_time() {
-    // Test 24-hour format
+    // Test 24-hour format without seconds (should default to 00)
     assert_eq!(
         parse_time("14:30"),
         Some(NaiveTime::from_hms_opt(14, 30, 0).unwrap())
     );
+    
+    // Test 24-hour format with seconds
+    assert_eq!(
+        parse_time("14:30:45"),
+        Some(NaiveTime::from_hms_opt(14, 30, 45).unwrap())
+    );
 
-    // Test 12-hour format with various formats
+    // Test 12-hour format with various formats (without seconds, should default to 00)
     let test_cases = vec![
         "02:30 PM",
         "02:30PM",
@@ -227,11 +239,31 @@ fn test_parse_time() {
             time_str
         );
     }
+    
+    // Test 12-hour format with seconds
+    let test_cases_with_seconds = vec![
+        "02:30:45 PM",
+        "02:30:45PM",
+        "02:30:45 pm",
+        "02:30:45pm",
+        "2:30:45 PM",
+        "2:30:45PM",
+    ];
+
+    for time_str in test_cases_with_seconds {
+        assert_eq!(
+            parse_time(time_str),
+            Some(NaiveTime::from_hms_opt(14, 30, 45).unwrap()),
+            "Failed to parse {}",
+            time_str
+        );
+    }
 
     // Test invalid formats
     assert_eq!(parse_time("not a time"), None);
     assert_eq!(parse_time("25:00"), None);
     assert_eq!(parse_time("14:60"), None);
+    assert_eq!(parse_time("14:30:60"), None); // Invalid seconds
     assert_eq!(parse_time("02:30 MP"), None);
 }
 
