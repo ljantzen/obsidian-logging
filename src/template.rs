@@ -67,7 +67,7 @@ impl TemplateData {
             yesterday: yesterday.format("%Y-%m-%d").to_string(),
             tomorrow: tomorrow.format("%Y-%m-%d").to_string(),
             weekday,
-            created: now.format("%Y-%m-%d %H:%M").to_string(),
+            created: now.format("%Y-%m-%d %H:%M:%S").to_string(),
         }
     }
 

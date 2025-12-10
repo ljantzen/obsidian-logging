@@ -60,9 +60,9 @@ fn test_stdin_with_time_override() {
     time_args.extend(entry_words);
     handle_with_time(time_args.into_iter(), &config, false, None);
 
-    // Verify the entry was written with the correct time
+    // Verify the entry was written with the correct time (with seconds defaulting to 00)
     let content = fs::read_to_string(&file_path).unwrap();
-    assert!(content.contains("14:30 Test stdin entry with time override"));
+    assert!(content.contains("14:30:00 Test stdin entry with time override"));
 }
 
 #[test]

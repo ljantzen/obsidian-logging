@@ -5,35 +5,73 @@ use regex::Regex;
 use lazy_static::lazy_static;
 
 lazy_static! {
-    static ref TIME_PATTERN: Regex = Regex::new(r"^(?:[-*]\s*)?(\d{2}:\d{2}(?:\s*[AaPp][Mm])?)\s*(.+)$").unwrap();
+    static ref TIME_PATTERN: Regex = Regex::new(r"^(?:[-*]\s*)?(\d{2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)\s*(.+)$").unwrap();
 }
 
 /// Format time according to the specified format (12 or 24 hour)
 pub fn format_time(time: NaiveTime, format: &TimeFormat) -> String {
     match format {
-        TimeFormat::Hour24 => time.format("%H:%M").to_string(),
+        TimeFormat::Hour24 => time.format("%H:%M:%S").to_string(),
         TimeFormat::Hour12 => {
             let hour = time.hour();
             let minute = time.minute();
+            let second = time.second();
             let period = if hour < 12 { "AM" } else { "PM" };
             let hour12 = match hour {
                 0 => 12,
                 13..=23 => hour - 12,
                 _ => hour,
             };
-            format!("{:02}:{:02} {}", hour12, minute, period)
+            format!("{:02}:{:02}:{:02} {}", hour12, minute, second, period)
         }
     }
 }
 
 /// Parse time string in either 12 or 24 hour format
+/// Supports both HH:MM and HH:MM:SS formats. If seconds are not provided, defaults to 00.
 pub fn parse_time(time_str: &str) -> Option<NaiveTime> {
-    // Try 24-hour format first
-    if let Ok(time) = NaiveTime::parse_from_str(time_str, "%H:%M") {
+    // Try 24-hour format with seconds first
+    // Validate seconds are in range 0-59 before parsing
+    if time_str.matches(':').count() >= 2 {
+        // Has seconds, validate format
+        let parts: Vec<&str> = time_str.split(':').collect();
+        if parts.len() >= 3 {
+            if let Ok(seconds) = parts[2].split_whitespace().next().unwrap_or("").parse::<u32>() {
+                if seconds >= 60 {
+                    return None;
+                }
+            }
+        }
+    }
+    
+    if let Ok(time) = NaiveTime::parse_from_str(time_str, "%H:%M:%S") {
         return Some(time);
     }
+    
+    // Try 24-hour format without seconds (default to 00 seconds)
+    if let Ok(time) = NaiveTime::parse_from_str(time_str, "%H:%M") {
+        return Some(NaiveTime::from_hms_opt(time.hour(), time.minute(), 0).unwrap());
+    }
 
-    // Try various 12-hour formats
+    // Try various 12-hour formats with seconds
+    let formats_with_seconds = vec![
+        "%I:%M:%S %p",    // "02:30:45 PM"
+        "%I:%M:%S%p",     // "02:30:45PM"
+        "%l:%M:%S %p",    // "2:30:45 PM"
+        "%l:%M:%S%p",     // "2:30:45PM"
+    ];
+
+    for format in formats_with_seconds {
+        if let Ok(time) = NaiveTime::parse_from_str(&time_str.to_uppercase(), format) {
+            // Validate that seconds are in valid range (0-59)
+            if time.second() >= 60 {
+                continue;
+            }
+            return Some(time);
+        }
+    }
+
+    // Try various 12-hour formats without seconds (default to 00 seconds)
     let formats = vec![
         "%I:%M %p",    // "02:30 PM"
         "%I:%M%p",     // "02:30PM"
@@ -43,7 +81,7 @@ pub fn parse_time(time_str: &str) -> Option<NaiveTime> {
 
     for format in formats {
         if let Ok(time) = NaiveTime::parse_from_str(&time_str.to_uppercase(), format) {
-            return Some(time);
+            return Some(NaiveTime::from_hms_opt(time.hour(), time.minute(), 0).unwrap());
         }
     }
 
@@ -97,9 +135,13 @@ fn parse_entry(entry: &str) -> (String, String) {
         
         // Try to find a valid time pattern at the beginning
         let time_patterns = [
-            // 24-hour format: HH:MM
+            // 24-hour format: HH:MM:SS
+            r"^(\d{1,2}:\d{2}:\d{2})\s+(.+)$",
+            // 24-hour format: HH:MM (backward compatibility)
             r"^(\d{1,2}:\d{2})\s+(.+)$",
-            // 12-hour format: HH:MM AM/PM
+            // 12-hour format: HH:MM:SS AM/PM
+            r"^(\d{1,2}:\d{2}:\d{2}\s+[AaPp][Mm])\s+(.+)$",
+            // 12-hour format: HH:MM AM/PM (backward compatibility)
             r"^(\d{1,2}:\d{2}\s+[AaPp][Mm])\s+(.+)$",
         ];
         

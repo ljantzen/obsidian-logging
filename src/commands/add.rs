@@ -1,4 +1,4 @@
-use chrono::{Local, NaiveTime, Timelike};
+use chrono::{Local, NaiveTime, Timelike, Duration};
 use std::fs::{create_dir_all, read_to_string, write};
 use crate::config::{Config, ListType};
 use crate::utils::{get_log_path_for_date, extract_log_entries, format_time, parse_time};
@@ -22,11 +22,15 @@ fn parse_bullet_entry(line: &str) -> Option<(String, String)> {
     let content = line.trim_start_matches(|c| c == '-' || c == '*' || c == ' ');
     
     // Try to find a valid time pattern at the beginning
-    // This handles both 24-hour (HH:MM) and 12-hour (HH:MM AM/PM) formats
+    // This handles both 24-hour (HH:MM:SS) and 12-hour (HH:MM:SS AM/PM) formats
     let time_patterns = [
-        // 24-hour format: HH:MM
+        // 24-hour format: HH:MM:SS
+        r"^(\d{1,2}:\d{2}:\d{2})\s+(.+)$",
+        // 24-hour format: HH:MM (backward compatibility)
         r"^(\d{1,2}:\d{2})\s+(.+)$",
-        // 12-hour format: HH:MM AM/PM
+        // 12-hour format: HH:MM:SS AM/PM
+        r"^(\d{1,2}:\d{2}:\d{2}\s+[AaPp][Mm])\s+(.+)$",
+        // 12-hour format: HH:MM AM/PM (backward compatibility)
         r"^(\d{1,2}:\d{2}\s+[AaPp][Mm])\s+(.+)$",
     ];
     
@@ -96,9 +100,8 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
     let sentence = sentence_parts.join(" ");
     let now = Local::now();
     let date = now.date_naive();
-    let time = time_override.unwrap_or_else(|| NaiveTime::from_hms_opt(now.hour(), now.minute(), 0).unwrap());
-    let time_str = format_time(time, &config.time_format);
-
+    let time = time_override.unwrap_or_else(|| NaiveTime::from_hms_opt(now.hour(), now.minute(), now.second()).unwrap());
+    
     let file_path = get_log_path_for_date(date, config);
     create_dir_all(file_path.parent().unwrap()).expect("Could not create log directory");
 
@@ -135,20 +138,45 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
         })
         .collect();
 
-    // Add the new entry
-    parsed_entries.push((time_str, sentence));
+    // Normalize all existing timestamps to the current format for consistent comparison
+    // This ensures we can properly detect duplicates even when formats differ
+    let normalized_existing: Vec<(NaiveTime, String)> = parsed_entries.iter()
+        .filter_map(|(time_str, entry)| {
+            parse_time(time_str).map(|t| (t, entry.clone()))
+        })
+        .collect();
 
-    // Sort entries by timestamp (convert to NaiveTime for comparison)
-    parsed_entries.sort_by(|a, b| {
-        let time_a = parse_time(&a.0).unwrap_or_else(|| NaiveTime::from_hms_opt(0, 0, 0).unwrap());
-        let time_b = parse_time(&b.0).unwrap_or_else(|| NaiveTime::from_hms_opt(0, 0, 0).unwrap());
-        time_a.cmp(&time_b)
-    });
+    // Find a unique timestamp by incrementing seconds if needed
+    let mut final_time = time;
+    
+    // Check if timestamp already exists and increment seconds until unique
+    // Compare NaiveTime values to handle cases where formats differ
+    while normalized_existing.iter().any(|(existing_time, _)| *existing_time == final_time) {
+        // Increment by 1 second using chrono's Duration
+        final_time = final_time + Duration::seconds(1);
+    }
+
+    // Combine existing entries (with their parsed timestamps) and the new entry,
+    // then normalize all to the current format
+    let mut all_entries: Vec<(NaiveTime, String)> = normalized_existing;
+    all_entries.push((final_time, sentence.clone()));
+    
+    // Sort entries by timestamp
+    all_entries.sort_by(|a, b| a.0.cmp(&b.0));
+
+    // Normalize all timestamps to include seconds and use current format
+    // This ensures existing entries without seconds get reformatted with seconds
+    let normalized_entries: Vec<(String, String)> = all_entries.iter()
+        .map(|(parsed_time, entry)| {
+            let normalized_time = format_time(*parsed_time, &config.time_format);
+            (normalized_time, entry.clone())
+        })
+        .collect();
 
     // Format entries according to effective type
     let formatted_entries = match effective_type {
         ListType::Bullet => {
-            parsed_entries.into_iter()
+            normalized_entries.into_iter()
                 .map(|(time, entry)| format!("* {} {}", time, entry))
                 .collect()
         }
@@ -157,7 +185,7 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
             let mut max_time_width = config.time_label.len();
             let mut max_entry_width = config.event_label.len();
 
-            for (time, entry) in &parsed_entries {
+            for (time, entry) in &normalized_entries {
                 max_time_width = max_time_width.max(time.len());
                 max_entry_width = max_entry_width.max(entry.len());
             }
@@ -170,7 +198,7 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
                 "-".repeat(max_time_width),
                 "-".repeat(max_entry_width)
             ));
-            table.extend(parsed_entries.into_iter().map(|(time, entry)| {
+            table.extend(normalized_entries.into_iter().map(|(time, entry)| {
                 format!("| {} | {} |", time, entry)
             }));
             table

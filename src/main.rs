@@ -14,7 +14,8 @@ use std::io::{self, Read};
 USAGE EXAMPLES:
   obsidian-logging                   # List today's entries
   obsidian-logging log entry         # Add a new log entry
-  obsidian-logging -t 14:30 entry    # Add entry with specific time
+  obsidian-logging -t 14:30 entry    # Add entry with specific time (seconds default to 00)
+  obsidian-logging -t 14:30:45 entry # Add entry with specific time including seconds
   obsidian-logging -c work meeting   # Add entry to work category section
   obsidian-logging -c personal gym   # Add entry to personal category section
   obsidian-logging -p meeting        # Use predefined phrase from config
@@ -42,7 +43,7 @@ TEMPLATE VARIABLES:
   {yesterday}  Yesterday's date
   {tomorrow}   Tomorrow's date
   {weekday}    Localized weekday name
-  {created}    Creation timestamp (YYYY-MM-DD HH:mm)"
+  {created}    Creation timestamp (YYYY-MM-DD HH:mm:ss)"
 )]
 struct Cli {
     /// Override list type (bullet or table)
@@ -53,8 +54,8 @@ struct Cli {
     #[arg(short = 'f', value_enum, help = "Override time format: 12 or 24")]
     time_format: Option<TimeFormatArg>,
     
-    /// Override timestamp for the entry (format: hh:mm or hh:mm AM/PM)
-    #[arg(short, long, help = "Override timestamp (e.g., 14:30 or 2:30 PM)")]
+    /// Override timestamp for the entry (format: hh:mm or hh:mm:ss, or hh:mm AM/PM or hh:mm:ss AM/PM)
+    #[arg(short, long, help = "Override timestamp (e.g., 14:30, 14:30:45, 2:30 PM, or 2:30:45 PM). If seconds are not provided, defaults to 00.")]
     time: Option<String>,
     
     /// List entries from specified days ago

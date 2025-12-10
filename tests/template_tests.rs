@@ -19,8 +19,8 @@ fn test_template_data_new() {
     assert!(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
         .contains(&data.weekday.as_str()));
     
-    // Verify created timestamp format
-    let timestamp_pattern = Regex::new(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$").unwrap();
+    // Verify created timestamp format (now includes seconds)
+    let timestamp_pattern = Regex::new(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$").unwrap();
     assert!(timestamp_pattern.is_match(&data.created));
 }
 
@@ -38,8 +38,8 @@ fn test_template_data_with_locale() {
     assert!(["mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag", "søndag"]
         .contains(&data.weekday.as_str()));
     
-    // Verify created timestamp format
-    let timestamp_pattern = Regex::new(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$").unwrap();
+    // Verify created timestamp format (now includes seconds)
+    let timestamp_pattern = Regex::new(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$").unwrap();
     assert!(timestamp_pattern.is_match(&data.created));
 }
 
