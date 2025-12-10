@@ -31,20 +31,6 @@ updates:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
-  # Monitor Rust toolchain updates
-  - package-ecosystem: "rust-toolchain"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "ljantzen"
-    assignees:
-      - "ljantzen"
-    commit-message:
-      prefix: "rust-toolchain"
-      include: "scope"
-
   # Monitor GitHub Actions dependencies
   - package-ecosystem: "github-actions"
     directory: "/"
