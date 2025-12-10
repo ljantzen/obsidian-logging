@@ -3,63 +3,84 @@ name: Release
 on:
   push:
     tags:
-      # Trigger on version tag push like v1.0.0
       - 'v*'
   workflow_dispatch:
 
-# Add permissions configuration
 permissions:
-  contents: write # Required for creating releases and uploading assets
+  contents: write
 
 jobs:
-  release:
-    name: Build and Release Binaries
+  build:
+    name: Build for ${{ matrix.target }}
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            ext: tar.gz
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            ext: tar.gz
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            ext: zip
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # ratchet:actions/checkout@v5
-        with:
-          persist-credentials: false
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Set up Rust
-        uses: dtolnay/rust-toolchain@5d458579430fc14a04a08a1e7d3694f545e91ce6 # ratchet:dtolnay/rust-toolchain@stable
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.target }}
 
-      - name: Build binary
-        run: cargo build --release
-
-      - name: Package binary (Windows)
-        if: runner.os == 'Windows'
-        run: |
-          mkdir -p dist
-          cp target/release/obsidian-logging.exe dist/obsidian-logging.exe
-          cd dist
-          Compress-Archive -Path obsidian-logging.exe -DestinationPath obsidian-logging-windows-latest.zip
-        shell: pwsh
+      - name: Build
+        run: cargo build --release --target ${{ matrix.target }}
 
       - name: Package binary (Unix)
         if: runner.os != 'Windows'
         run: |
-          mkdir -p dist
-          cp target/release/obsidian-logging dist/obsidian-logging
+          mkdir dist
+          cp target/${{ matrix.target }}/release/obsidian-logging dist/
           cd dist
-          tar -czvf obsidian-logging-${{ runner.os }}.tar.gz obsidian-logging
-        shell: bash
+          tar -czvf obsidian-logging-${{ matrix.target }}.tar.gz obsidian-logging
 
-      - name: Create GitHub Release and Upload Assets
-        uses: softprops/action-gh-release@a06a81a03ee405af7f2048a818ed3f03bbf83c7b # ratchet:softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Package binary (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          mkdir dist
+          cp target/${{ matrix.target }}/release/obsidian-logging.exe dist/
+          Compress-Archive -Path dist/obsidian-logging.exe -DestinationPath dist/obsidian-logging-${{ matrix.target }}.zip
+        shell: pwsh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/*
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Generate SHA256 checksums
+        run: |
+          cd dist
+          find . -type f -exec sha256sum {} \; > checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
         with:
           name: Release ${{ github.ref_name }}
           tag_name: ${{ github.ref_name }}
           generate_release_notes: true
-          draft: false
-          files: |
-            dist/*.tar.gz
-            dist/*.zip
+          files: dist/**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
