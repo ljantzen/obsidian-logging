@@ -1,11 +1,12 @@
+use crate::config::{Config, ListType, TimeFormat};
 use chrono::{NaiveDate, NaiveTime, Timelike};
-use std::path::PathBuf;
-use crate::config::{ListType, Config, TimeFormat};
-use regex::Regex;
 use lazy_static::lazy_static;
+use regex::Regex;
+use std::path::PathBuf;
 
 lazy_static! {
-    static ref TIME_PATTERN: Regex = Regex::new(r"^(?:[-*]\s*)?(\d{2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)\s*(.+)$").unwrap();
+    static ref TIME_PATTERN: Regex =
+        Regex::new(r"^(?:[-*]\s*)?(\d{2}:\d{2}(?::\d{2})?(?:\s*[AaPp][Mm])?)\s*(.+)$").unwrap();
 }
 
 /// Format time according to the specified format (12 or 24 hour)
@@ -36,18 +37,23 @@ pub fn parse_time(time_str: &str) -> Option<NaiveTime> {
         // Has seconds, validate format
         let parts: Vec<&str> = time_str.split(':').collect();
         if parts.len() >= 3 {
-            if let Ok(seconds) = parts[2].split_whitespace().next().unwrap_or("").parse::<u32>() {
+            if let Ok(seconds) = parts[2]
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .parse::<u32>()
+            {
                 if seconds >= 60 {
                     return None;
                 }
             }
         }
     }
-    
+
     if let Ok(time) = NaiveTime::parse_from_str(time_str, "%H:%M:%S") {
         return Some(time);
     }
-    
+
     // Try 24-hour format without seconds (default to 00 seconds)
     if let Ok(time) = NaiveTime::parse_from_str(time_str, "%H:%M") {
         return Some(NaiveTime::from_hms_opt(time.hour(), time.minute(), 0).unwrap());
@@ -55,10 +61,10 @@ pub fn parse_time(time_str: &str) -> Option<NaiveTime> {
 
     // Try various 12-hour formats with seconds
     let formats_with_seconds = vec![
-        "%I:%M:%S %p",    // "02:30:45 PM"
-        "%I:%M:%S%p",     // "02:30:45PM"
-        "%l:%M:%S %p",    // "2:30:45 PM"
-        "%l:%M:%S%p",     // "2:30:45PM"
+        "%I:%M:%S %p", // "02:30:45 PM"
+        "%I:%M:%S%p",  // "02:30:45PM"
+        "%l:%M:%S %p", // "2:30:45 PM"
+        "%l:%M:%S%p",  // "2:30:45PM"
     ];
 
     for format in formats_with_seconds {
@@ -73,10 +79,10 @@ pub fn parse_time(time_str: &str) -> Option<NaiveTime> {
 
     // Try various 12-hour formats without seconds (default to 00 seconds)
     let formats = vec![
-        "%I:%M %p",    // "02:30 PM"
-        "%I:%M%p",     // "02:30PM"
-        "%l:%M %p",    // "2:30 PM"
-        "%l:%M%p",     // "2:30PM"
+        "%I:%M %p", // "02:30 PM"
+        "%I:%M%p",  // "02:30PM"
+        "%l:%M %p", // "2:30 PM"
+        "%l:%M%p",  // "2:30PM"
     ];
 
     for format in formats {
@@ -92,33 +98,39 @@ pub fn parse_time(time_str: &str) -> Option<NaiveTime> {
 /// Supported tokens: {year}, {month}, {date}
 pub fn get_log_path_for_date(date: NaiveDate, config: &Config) -> PathBuf {
     let mut path = PathBuf::from(&config.vault);
-    
+
     let year = date.format("%Y").to_string();
     let month = date.format("%m").to_string();
     let date_str = date.format("%Y-%m-%d").to_string();
-    
-    let file_path = config.file_path_format
+
+    let file_path = config
+        .file_path_format
         .replace("{year}", &year)
         .replace("{month}", &month)
         .replace("{date}", &date_str);
-    
+
     path.push(file_path);
     path
 }
 
 /// Format a table row with given widths for timestamp and entry columns
 fn format_table_row(timestamp: &str, entry: &str, time_width: usize, entry_width: usize) -> String {
-    format!("| {:<width_t$} | {:<width_e$} |",
-            timestamp, entry,
-            width_t = time_width,
-            width_e = entry_width)
+    format!(
+        "| {:<width_t$} | {:<width_e$} |",
+        timestamp,
+        entry,
+        width_t = time_width,
+        width_e = entry_width
+    )
 }
 
 /// Format a table separator line with given column widths
 fn format_table_separator(time_width: usize, entry_width: usize) -> String {
-    format!("|{}|{}|",
-            "-".repeat(time_width + 2),
-            "-".repeat(entry_width + 2))
+    format!(
+        "|{}|{}|",
+        "-".repeat(time_width + 2),
+        "-".repeat(entry_width + 2)
+    )
 }
 
 /// Parse an entry to extract timestamp and content
@@ -132,7 +144,7 @@ fn parse_entry(entry: &str) -> (String, String) {
     } else if entry.starts_with(['*', '-']) {
         // Parse bullet format - handle both 24-hour and 12-hour time formats
         let content = entry.trim_start_matches(|c| c == '-' || c == '*' || c == ' ');
-        
+
         // Try to find a valid time pattern at the beginning
         let time_patterns = [
             // 24-hour format: HH:MM:SS
@@ -144,7 +156,7 @@ fn parse_entry(entry: &str) -> (String, String) {
             // 12-hour format: HH:MM AM/PM (backward compatibility)
             r"^(\d{1,2}:\d{2}\s+[AaPp][Mm])\s+(.+)$",
         ];
-        
+
         for pattern in &time_patterns {
             if let Ok(regex) = Regex::new(pattern) {
                 if let Some(captures) = regex.captures(content) {
@@ -154,22 +166,32 @@ fn parse_entry(entry: &str) -> (String, String) {
                 }
             }
         }
-        
+
         // Fallback to original behavior for backward compatibility
         if let Some(space_pos) = content.find(' ') {
             if let Some(second_space) = content[space_pos + 1..].find(' ') {
-                return (content[..space_pos + 1 + second_space].trim().to_string(),
-                       content[space_pos + 1 + second_space + 1..].trim().to_string());
+                return (
+                    content[..space_pos + 1 + second_space].trim().to_string(),
+                    content[space_pos + 1 + second_space + 1..]
+                        .trim()
+                        .to_string(),
+                );
             }
         }
     }
     (String::new(), String::new())
 }
 
-/// Extract log entries from the log section 
+/// Extract log entries from the log section
 /// Returns ( content before log section, content after log section, list of log entries, and detected list type)
-/// Section heading retrieved from yaml config 
-pub fn extract_log_entries(content: &str, section_header: &str, list_type: &ListType, config: &Config, include_header: bool) -> (String, String, Vec<String>, ListType) {
+/// Section heading retrieved from yaml config
+pub fn extract_log_entries(
+    content: &str,
+    section_header: &str,
+    list_type: &ListType,
+    config: &Config,
+    include_header: bool,
+) -> (String, String, Vec<String>, ListType) {
     let mut before = String::new();
     let mut after = String::new();
     let mut entries = Vec::new();
@@ -202,7 +224,9 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
                 }
 
                 // Skip table separator and header rows
-                if !trimmed.contains("---") && trimmed != format!("| {} | {} |", config.time_label, config.event_label) {
+                if !trimmed.contains("---")
+                    && trimmed != format!("| {} | {} |", config.time_label, config.event_label)
+                {
                     entries.push(line.to_string());
                 }
             }
@@ -218,7 +242,7 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
     // Convert entries if needed
     if found_type != *list_type {
         let mut converted_entries = Vec::new();
-        
+
         if *list_type == ListType::Table {
             // Convert from bullet to table
             let mut max_time_width = config.time_label.len();
@@ -239,7 +263,12 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
 
             // Add header only if include_header is true
             if include_header {
-                converted_entries.push(format_table_row(&config.time_label, &config.event_label, max_time_width, max_entry_width));
+                converted_entries.push(format_table_row(
+                    &config.time_label,
+                    &config.event_label,
+                    max_time_width,
+                    max_entry_width,
+                ));
                 converted_entries.push(format_table_separator(max_time_width, max_entry_width));
             }
 
@@ -252,15 +281,23 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
                 } else {
                     time
                 };
-                converted_entries.push(format_table_row(&formatted_time, &text, max_time_width, max_entry_width));
+                converted_entries.push(format_table_row(
+                    &formatted_time,
+                    &text,
+                    max_time_width,
+                    max_entry_width,
+                ));
             }
         } else {
             // Convert from table to bullet
             // Add table header as a comment only if include_header is true
             if include_header {
-                converted_entries.push(format!("<!-- {} | {} -->", config.time_label, config.event_label));
+                converted_entries.push(format!(
+                    "<!-- {} | {} -->",
+                    config.time_label, config.event_label
+                ));
             }
-            
+
             for entry in entries {
                 let (time, text) = parse_entry(&entry);
                 if !time.is_empty() && !text.is_empty() {
@@ -293,17 +330,27 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
 
                 // Rebuild table with header
                 let mut rebuilt_entries = Vec::new();
-                rebuilt_entries.push(format_table_row(&config.time_label, &config.event_label, max_time_width, max_entry_width));
+                rebuilt_entries.push(format_table_row(
+                    &config.time_label,
+                    &config.event_label,
+                    max_time_width,
+                    max_entry_width,
+                ));
                 rebuilt_entries.push(format_table_separator(max_time_width, max_entry_width));
-                
+
                 // Add data rows
                 for entry in entries {
                     let (time, text) = parse_entry(&entry);
                     if !time.is_empty() && !text.is_empty() {
-                        rebuilt_entries.push(format_table_row(&time, &text, max_time_width, max_entry_width));
+                        rebuilt_entries.push(format_table_row(
+                            &time,
+                            &text,
+                            max_time_width,
+                            max_entry_width,
+                        ));
                     }
                 }
-                
+
                 entries = rebuilt_entries;
             }
             // If include_header is false, keep original entries as-is
@@ -313,4 +360,3 @@ pub fn extract_log_entries(content: &str, section_header: &str, list_type: &List
 
     (before, after, entries, found_type)
 }
-

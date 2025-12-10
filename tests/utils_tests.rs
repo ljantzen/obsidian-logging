@@ -1,6 +1,8 @@
 use chrono::{NaiveDate, NaiveTime};
 use obsidian_logging::config::{Config, ListType, TimeFormat};
-use obsidian_logging::utils::{get_log_path_for_date, extract_log_entries, format_time, parse_time};
+use obsidian_logging::utils::{
+    extract_log_entries, format_time, get_log_path_for_date, parse_time,
+};
 use std::path::PathBuf;
 
 fn create_test_config() -> Config {
@@ -23,14 +25,14 @@ fn create_test_config() -> Config {
 fn test_get_log_path_for_date() {
     let config = create_test_config();
     let date = NaiveDate::from_ymd_opt(2024, 3, 15).unwrap();
-    
+
     let path = get_log_path_for_date(date, &config);
     let mut expected_path = PathBuf::from("/test/vault");
     expected_path.push("test");
     expected_path.push("2024");
     expected_path.push("03");
     expected_path.push("2024-03-15.md");
-    
+
     assert_eq!(path, expected_path);
 }
 
@@ -47,15 +49,24 @@ Some content
 ## Another section"#;
 
     let config = create_test_config();
-    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
+    let (before, after, entries, found_type) = extract_log_entries(
+        content,
+        &config.section_header,
+        &ListType::Bullet,
+        &config,
+        false,
+    );
 
     assert_eq!(before, "# Header\nSome content\n\n");
     assert_eq!(after, "## Another section");
-    assert_eq!(entries, vec![
-        "* 09:00 First entry",
-        "* 10:30 Second entry",
-        "* 11:15 Third entry"
-    ]);
+    assert_eq!(
+        entries,
+        vec![
+            "* 09:00 First entry",
+            "* 10:30 Second entry",
+            "* 11:15 Third entry"
+        ]
+    );
     assert_eq!(found_type, ListType::Bullet);
 }
 
@@ -74,15 +85,24 @@ Some content
 ## Another section"#;
 
     let config = create_test_config();
-    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Table, &config, false);
+    let (before, after, entries, found_type) = extract_log_entries(
+        content,
+        &config.section_header,
+        &ListType::Table,
+        &config,
+        false,
+    );
 
     assert_eq!(before, "# Header\nSome content\n\n");
     assert_eq!(after, "## Another section");
-    assert_eq!(entries, vec![
-        "| 09:00 | First entry |",
-        "| 10:30 | Second entry |",
-        "| 11:15 | Third entry |"
-    ]);
+    assert_eq!(
+        entries,
+        vec![
+            "| 09:00 | First entry |",
+            "| 10:30 | Second entry |",
+            "| 11:15 | Third entry |"
+        ]
+    );
     assert_eq!(found_type, ListType::Table);
 }
 
@@ -96,7 +116,13 @@ Some content
 ## Another section"#;
 
     let config = create_test_config();
-    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
+    let (before, after, entries, found_type) = extract_log_entries(
+        content,
+        &config.section_header,
+        &ListType::Bullet,
+        &config,
+        false,
+    );
 
     assert_eq!(before, "# Header\nSome content\n\n");
     assert_eq!(after, "## Another section");
@@ -109,7 +135,13 @@ fn test_extract_log_entries_no_section() {
     let content = "# Header\nSome content\n";
 
     let config = create_test_config();
-    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
+    let (before, after, entries, found_type) = extract_log_entries(
+        content,
+        &config.section_header,
+        &ListType::Bullet,
+        &config,
+        false,
+    );
 
     assert_eq!(before, content);
     assert_eq!(after, "");
@@ -124,7 +156,13 @@ fn test_extract_log_entries_convert_bullet_to_table() {
 * 10:30 Second entry"#;
 
     let config = create_test_config();
-    let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Table, &config, true);
+    let (_, _, entries, _) = extract_log_entries(
+        content,
+        &config.section_header,
+        &ListType::Table,
+        &config,
+        true,
+    );
 
     // Should convert to table format with consistent column widths (with seconds added during reformatting)
     assert_eq!(entries[0], "| Tidspunkt | Hendelse     |");
@@ -142,7 +180,13 @@ fn test_extract_log_entries_convert_table_to_bullet() {
 | 10:30 | Second entry |"#;
 
     let config = create_test_config();
-    let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
+    let (_, _, entries, _) = extract_log_entries(
+        content,
+        &config.section_header,
+        &ListType::Bullet,
+        &config,
+        false,
+    );
 
     // Should convert to bullet format (with seconds added during reformatting)
     assert_eq!(entries[0], "- 09:00:00 First entry");
@@ -164,15 +208,24 @@ Some content
 ## Another section"#;
 
     let config = create_test_config();
-    let (before, after, entries, found_type) = extract_log_entries(content, &config.section_header, &ListType::Table, &config, false);
+    let (before, after, entries, found_type) = extract_log_entries(
+        content,
+        &config.section_header,
+        &ListType::Table,
+        &config,
+        false,
+    );
 
     assert_eq!(before, "# Header\nSome content\n\n");
     assert_eq!(after, "## Another section");
-    assert_eq!(entries, vec![
-        "| 09:00 | First entry |",
-        "| 10:30 | Second entry |",
-        "| 11:15 | Third entry |"
-    ]);
+    assert_eq!(
+        entries,
+        vec![
+            "| 09:00 | First entry |",
+            "| 10:30 | Second entry |",
+            "| 11:15 | Third entry |"
+        ]
+    );
     assert_eq!(found_type, ListType::Table);
 }
 
@@ -181,7 +234,7 @@ fn test_format_time_24h() {
     let time = NaiveTime::from_hms_opt(14, 30, 45).unwrap();
     let formatted = format_time(time, &TimeFormat::Hour24);
     assert_eq!(formatted, "14:30:45");
-    
+
     // Test with zero seconds
     let time_zero = NaiveTime::from_hms_opt(14, 30, 0).unwrap();
     let formatted_zero = format_time(time_zero, &TimeFormat::Hour24);
@@ -214,7 +267,7 @@ fn test_parse_time() {
         parse_time("14:30"),
         Some(NaiveTime::from_hms_opt(14, 30, 0).unwrap())
     );
-    
+
     // Test 24-hour format with seconds
     assert_eq!(
         parse_time("14:30:45"),
@@ -223,12 +276,7 @@ fn test_parse_time() {
 
     // Test 12-hour format with various formats (without seconds, should default to 00)
     let test_cases = vec![
-        "02:30 PM",
-        "02:30PM",
-        "02:30 pm",
-        "02:30pm",
-        "2:30 PM",
-        "2:30PM",
+        "02:30 PM", "02:30PM", "02:30 pm", "02:30pm", "2:30 PM", "2:30PM",
     ];
 
     for time_str in test_cases {
@@ -239,7 +287,7 @@ fn test_parse_time() {
             time_str
         );
     }
-    
+
     // Test 12-hour format with seconds
     let test_cases_with_seconds = vec![
         "02:30:45 PM",
@@ -281,11 +329,20 @@ Some content
 ## Another section"#;
 
     let config = create_test_config();
-    let (_, _, entries, _) = extract_log_entries(content, &config.section_header, &ListType::Bullet, &config, false);
+    let (_, _, entries, _) = extract_log_entries(
+        content,
+        &config.section_header,
+        &ListType::Bullet,
+        &config,
+        false,
+    );
 
-    assert_eq!(entries, vec![
-        "* 09:00 AM First entry",
-        "* 14:30 Second entry",
-        "* 02:15 PM Third entry"
-    ]);
-} 
+    assert_eq!(
+        entries,
+        vec![
+            "* 09:00 AM First entry",
+            "* 14:30 Second entry",
+            "* 02:15 PM Third entry"
+        ]
+    );
+}

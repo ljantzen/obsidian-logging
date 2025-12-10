@@ -1,8 +1,8 @@
-use tempfile::TempDir;
-use obsidian_logging::config::{Config, ListType, TimeFormat};
-use obsidian_logging::commands::add::{handle_plain_entry, handle_with_time};
-use std::fs;
 use chrono::Local;
+use obsidian_logging::commands::add::{handle_plain_entry, handle_with_time};
+use obsidian_logging::config::{Config, ListType, TimeFormat};
+use std::fs;
+use tempfile::TempDir;
 
 fn setup_test_env() -> (TempDir, Config) {
     let temp_dir = TempDir::new().unwrap();
@@ -31,8 +31,11 @@ fn test_stdin_functionality() {
 
     // Simulate stdin input
     let stdin_content = "Test stdin entry";
-    let entry_words: Vec<String> = stdin_content.split_whitespace().map(|s| s.to_string()).collect();
-    
+    let entry_words: Vec<String> = stdin_content
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect();
+
     // Process the entry
     let mut args = entry_words.into_iter();
     if let Some(first) = args.next() {
@@ -53,8 +56,11 @@ fn test_stdin_with_time_override() {
 
     // Simulate stdin input with time override
     let stdin_content = "Test stdin entry with time override";
-    let entry_words: Vec<String> = stdin_content.split_whitespace().map(|s| s.to_string()).collect();
-    
+    let entry_words: Vec<String> = stdin_content
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect();
+
     // Process the entry with time override (simulating -t 14:30)
     let mut time_args = vec!["14:30".to_string()];
     time_args.extend(entry_words);
@@ -75,8 +81,11 @@ fn test_stdin_empty_input() {
 
     // Simulate empty stdin input
     let stdin_content = "";
-    let entry_words: Vec<String> = stdin_content.split_whitespace().map(|s| s.to_string()).collect();
-    
+    let entry_words: Vec<String> = stdin_content
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect();
+
     // Process the entry (should not create anything for empty input)
     if !entry_words.is_empty() {
         let mut args = entry_words.into_iter();
@@ -91,4 +100,4 @@ fn test_stdin_empty_input() {
         // Should only contain template content, no actual entries
         assert!(!content.contains("* ") || content.contains("## Test"));
     }
-} 
+}

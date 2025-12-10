@@ -1,12 +1,12 @@
-use std::fs;
-use std::env;
-use std::path::PathBuf;
-use std::str::FromStr;
-use std::sync::{Once, Mutex};
 use lazy_static::lazy_static;
-use tempfile::TempDir;
 use obsidian_logging::config::{Config, ListType, TimeFormat};
 use serial_test::serial;
+use std::env;
+use std::fs;
+use std::path::PathBuf;
+use std::str::FromStr;
+use std::sync::{Mutex, Once};
+use tempfile::TempDir;
 
 static INIT: Once = Once::new();
 
@@ -60,13 +60,13 @@ fn test_expand_tilde() {
 #[test]
 fn test_get_config_dir() {
     let config_dir = setup_test_env();
-    
+
     let result = if cfg!(windows) {
         config_dir.join("obsidian-logging")
     } else {
         config_dir.join(".config").join("obsidian-logging")
     };
-    
+
     assert_eq!(result.to_string_lossy(), result.to_string_lossy());
 }
 
@@ -75,7 +75,7 @@ fn test_get_config_dir() {
 fn test_load_config_default() {
     env::remove_var("OBSIDIAN_VAULT_DIR");
     let _config_dir = setup_test_env();
-    
+
     // Test loading when config doesn't exist
     let config = Config::default();
     assert_eq!(config.vault, "");
@@ -88,9 +88,14 @@ fn test_load_config_existing() {
     env::remove_var("OBSIDIAN_VAULT_DIR");
     let config_dir = setup_test_env();
     let config_path = if cfg!(windows) {
-        config_dir.join("obsidian-logging").join("obsidian-logging.yaml")
+        config_dir
+            .join("obsidian-logging")
+            .join("obsidian-logging.yaml")
     } else {
-        config_dir.join(".config").join("obsidian-logging").join("obsidian-logging.yaml")
+        config_dir
+            .join(".config")
+            .join("obsidian-logging")
+            .join("obsidian-logging.yaml")
     };
     fs::create_dir_all(config_path.parent().unwrap()).unwrap();
 
@@ -130,20 +135,20 @@ fn test_list_type_serialization() {
     // Test serialization
     let bullet = ListType::Bullet;
     let table = ListType::Table;
-    
+
     let bullet_yaml = serde_yaml::to_string(&bullet).unwrap();
     let table_yaml = serde_yaml::to_string(&table).unwrap();
-    
+
     assert_eq!(bullet_yaml.trim(), "Bullet");
     assert_eq!(table_yaml.trim(), "Table");
-    
+
     // Test deserialization
     let bullet_back: ListType = serde_yaml::from_str("Bullet").unwrap();
     let table_back: ListType = serde_yaml::from_str("Table").unwrap();
-    
+
     assert_eq!(bullet_back, ListType::Bullet);
     assert_eq!(table_back, ListType::Table);
-    
+
     // Test case insensitivity
     let bullet_upper: ListType = serde_yaml::from_str("BULLET").unwrap();
     assert_eq!(bullet_upper, ListType::Bullet);
@@ -256,9 +261,14 @@ fn test_config_with_list_type() {
 fn test_environment_variable_overrides_config() {
     let config_dir = setup_test_env();
     let config_path = if cfg!(windows) {
-        config_dir.join("obsidian-logging").join("obsidian-logging.yaml")
+        config_dir
+            .join("obsidian-logging")
+            .join("obsidian-logging.yaml")
     } else {
-        config_dir.join(".config").join("obsidian-logging").join("obsidian-logging.yaml")
+        config_dir
+            .join(".config")
+            .join("obsidian-logging")
+            .join("obsidian-logging.yaml")
     };
     fs::create_dir_all(config_path.parent().unwrap()).unwrap();
 
@@ -297,4 +307,4 @@ fn test_environment_variable_overrides_config() {
 
     // Clean up
     env::remove_var("OBSIDIAN_VAULT_DIR");
-} 
+}

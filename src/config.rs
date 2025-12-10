@@ -1,8 +1,8 @@
-use std::path::PathBuf;
-use std::fs;
-use serde::{Serialize, Deserialize};
-use std::str::FromStr;
+use serde::{Deserialize, Serialize};
 use std::env;
+use std::fs;
+use std::path::PathBuf;
+use std::str::FromStr;
 
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub enum ListType {
@@ -289,7 +289,8 @@ impl<'de> Deserialize<'de> for Config {
                             event_label = Some(map.next_value()?);
                         }
                         "phrases" => {
-                            let phrases_map: std::collections::HashMap<String, String> = map.next_value()?;
+                            let phrases_map: std::collections::HashMap<String, String> =
+                                map.next_value()?;
                             phrases = phrases_map;
                         }
                         _ => {
@@ -334,7 +335,7 @@ impl<'de> Deserialize<'de> for Config {
 impl Default for Config {
     fn default() -> Self {
         let vault_dir = env::var("OBSIDIAN_VAULT_DIR").unwrap_or_else(|_| "".to_string());
-        
+
         Config {
             vault: vault_dir,
             file_path_format: if cfg!(windows) {
@@ -373,7 +374,10 @@ impl Config {
     pub fn get_section_header_for_category(&self, category: Option<&str>) -> &str {
         if let Some(cat) = category {
             let key = format!("section_header_{}", cat);
-            self.category_headers.get(&key).map(|s| s.as_str()).unwrap_or(&self.section_header)
+            self.category_headers
+                .get(&key)
+                .map(|s| s.as_str())
+                .unwrap_or(&self.section_header)
         } else {
             &self.section_header
         }
@@ -414,4 +418,3 @@ fn get_config_dir() -> PathBuf {
         PathBuf::from(home).join(".config").join("obsidian-logging")
     }
 }
-

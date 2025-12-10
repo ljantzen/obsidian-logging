@@ -1,8 +1,8 @@
-use chrono::{Local, NaiveTime, Timelike, Duration};
-use std::fs::{create_dir_all, read_to_string, write};
 use crate::config::{Config, ListType};
-use crate::utils::{get_log_path_for_date, extract_log_entries, format_time, parse_time};
 use crate::template::get_template_content;
+use crate::utils::{extract_log_entries, format_time, get_log_path_for_date, parse_time};
+use chrono::{Duration, Local, NaiveTime, Timelike};
+use std::fs::{create_dir_all, read_to_string, write};
 
 /// Parse a table row into (timestamp, entry)
 fn parse_table_row(line: &str) -> Option<(String, String)> {
@@ -20,7 +20,7 @@ fn parse_table_row(line: &str) -> Option<(String, String)> {
 /// Parse a bullet entry into (timestamp, entry)
 fn parse_bullet_entry(line: &str) -> Option<(String, String)> {
     let content = line.trim_start_matches(|c| c == '-' || c == '*' || c == ' ');
-    
+
     // Try to find a valid time pattern at the beginning
     // This handles both 24-hour (HH:MM:SS) and 12-hour (HH:MM:SS AM/PM) formats
     let time_patterns = [
@@ -33,7 +33,7 @@ fn parse_bullet_entry(line: &str) -> Option<(String, String)> {
         // 12-hour format: HH:MM AM/PM (backward compatibility)
         r"^(\d{1,2}:\d{2}\s+[AaPp][Mm])\s+(.+)$",
     ];
-    
+
     for pattern in &time_patterns {
         if let Ok(regex) = regex::Regex::new(pattern) {
             if let Some(captures) = regex.captures(content) {
@@ -43,17 +43,22 @@ fn parse_bullet_entry(line: &str) -> Option<(String, String)> {
             }
         }
     }
-    
+
     // Fallback to original behavior for backward compatibility
     if let Some(space_pos) = content.find(' ') {
         let (time, entry) = content.split_at(space_pos);
         return Some((time.trim().to_string(), entry.trim().to_string()));
     }
-    
+
     None
 }
 
-pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config, silent: bool, category: Option<&str>) {
+pub fn handle_with_time(
+    mut args: impl Iterator<Item = String>,
+    config: &Config,
+    silent: bool,
+    category: Option<&str>,
+) {
     let time_str = args.next().expect("Expected time as first argument");
     let mut sentence_parts = Vec::new();
 
@@ -90,18 +95,32 @@ pub fn handle_with_time(mut args: impl Iterator<Item=String>, config: &Config, s
     }
 }
 
-pub fn handle_plain_entry(first_arg: String, args: impl Iterator<Item=String>, config: &Config, silent: bool, category: Option<&str>) {
+pub fn handle_plain_entry(
+    first_arg: String,
+    args: impl Iterator<Item = String>,
+    config: &Config,
+    silent: bool,
+    category: Option<&str>,
+) {
     let mut sentence_parts = vec![first_arg];
     sentence_parts.extend(args);
     handle_plain_entry_with_time(sentence_parts, None, config, silent, category);
 }
 
-pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: Option<NaiveTime>, config: &Config, silent: bool, category: Option<&str>) {
+pub fn handle_plain_entry_with_time(
+    sentence_parts: Vec<String>,
+    time_override: Option<NaiveTime>,
+    config: &Config,
+    silent: bool,
+    category: Option<&str>,
+) {
     let sentence = sentence_parts.join(" ");
     let now = Local::now();
     let date = now.date_naive();
-    let time = time_override.unwrap_or_else(|| NaiveTime::from_hms_opt(now.hour(), now.minute(), now.second()).unwrap());
-    
+    let time = time_override.unwrap_or_else(|| {
+        NaiveTime::from_hms_opt(now.hour(), now.minute(), now.second()).unwrap()
+    });
+
     let file_path = get_log_path_for_date(date, config);
     create_dir_all(file_path.parent().unwrap()).expect("Could not create log directory");
 
@@ -113,7 +132,8 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
     };
 
     let section_header = config.get_section_header_for_category(category);
-    let (before_log, after_log, entries, detected_type) = extract_log_entries(&content, section_header, &config.list_type, config, false);
+    let (before_log, after_log, entries, detected_type) =
+        extract_log_entries(&content, section_header, &config.list_type, config, false);
 
     // For new files, always use the config list type
     // For existing files, use detected type unless there are no entries
@@ -126,7 +146,8 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
     };
 
     // Parse all entries into (timestamp, entry) pairs
-    let mut parsed_entries: Vec<(String, String)> = entries.iter()
+    let parsed_entries: Vec<(String, String)> = entries
+        .iter()
         .filter_map(|e| {
             if e.starts_with("| ") {
                 parse_table_row(e)
@@ -140,18 +161,20 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
 
     // Normalize all existing timestamps to the current format for consistent comparison
     // This ensures we can properly detect duplicates even when formats differ
-    let normalized_existing: Vec<(NaiveTime, String)> = parsed_entries.iter()
-        .filter_map(|(time_str, entry)| {
-            parse_time(time_str).map(|t| (t, entry.clone()))
-        })
+    let normalized_existing: Vec<(NaiveTime, String)> = parsed_entries
+        .iter()
+        .filter_map(|(time_str, entry)| parse_time(time_str).map(|t| (t, entry.clone())))
         .collect();
 
     // Find a unique timestamp by incrementing seconds if needed
     let mut final_time = time;
-    
+
     // Check if timestamp already exists and increment seconds until unique
     // Compare NaiveTime values to handle cases where formats differ
-    while normalized_existing.iter().any(|(existing_time, _)| *existing_time == final_time) {
+    while normalized_existing
+        .iter()
+        .any(|(existing_time, _)| *existing_time == final_time)
+    {
         // Increment by 1 second using chrono's Duration
         final_time = final_time + Duration::seconds(1);
     }
@@ -160,13 +183,14 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
     // then normalize all to the current format
     let mut all_entries: Vec<(NaiveTime, String)> = normalized_existing;
     all_entries.push((final_time, sentence.clone()));
-    
+
     // Sort entries by timestamp
     all_entries.sort_by(|a, b| a.0.cmp(&b.0));
 
     // Normalize all timestamps to include seconds and use current format
     // This ensures existing entries without seconds get reformatted with seconds
-    let normalized_entries: Vec<(String, String)> = all_entries.iter()
+    let normalized_entries: Vec<(String, String)> = all_entries
+        .iter()
         .map(|(parsed_time, entry)| {
             let normalized_time = format_time(*parsed_time, &config.time_format);
             (normalized_time, entry.clone())
@@ -175,11 +199,10 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
 
     // Format entries according to effective type
     let formatted_entries = match effective_type {
-        ListType::Bullet => {
-            normalized_entries.into_iter()
-                .map(|(time, entry)| format!("* {} {}", time, entry))
-                .collect()
-        }
+        ListType::Bullet => normalized_entries
+            .into_iter()
+            .map(|(time, entry)| format!("* {} {}", time, entry))
+            .collect(),
         ListType::Table => {
             // Calculate maximum widths
             let mut max_time_width = config.time_label.len();
@@ -193,14 +216,20 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
             // Format table
             let mut table = Vec::new();
             // Always show header for table format
-            table.push(format!("| {} | {} |", config.time_label, config.event_label));
-            table.push(format!("| {} | {} |", 
+            table.push(format!(
+                "| {} | {} |",
+                config.time_label, config.event_label
+            ));
+            table.push(format!(
+                "| {} | {} |",
                 "-".repeat(max_time_width),
                 "-".repeat(max_entry_width)
             ));
-            table.extend(normalized_entries.into_iter().map(|(time, entry)| {
-                format!("| {} | {} |", time, entry)
-            }));
+            table.extend(
+                normalized_entries
+                    .into_iter()
+                    .map(|(time, entry)| format!("| {} | {} |", time, entry)),
+            );
             table
         }
     };
@@ -217,12 +246,10 @@ pub fn handle_plain_entry_with_time(sentence_parts: Vec<String>, time_override: 
         }
     );
 
-    write(&file_path, new_content.trim_end().to_string() + "\n").expect("Error writing logs to file");
+    write(&file_path, new_content.trim_end().to_string() + "\n")
+        .expect("Error writing logs to file");
 
     if !silent {
         println!("Logged.");
     }
 }
-
-
-

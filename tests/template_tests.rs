@@ -1,9 +1,9 @@
 use chrono::{Duration, Local};
+use obsidian_logging::config::{Config, ListType, TimeFormat};
+use obsidian_logging::template::{get_template_content, process_template, TemplateData};
+use regex::Regex;
 use std::fs;
 use tempfile::TempDir;
-use obsidian_logging::config::{Config, ListType, TimeFormat};
-use obsidian_logging::template::{TemplateData, process_template, get_template_content};
-use regex::Regex;
 
 #[test]
 fn test_template_data_new() {
@@ -12,13 +12,21 @@ fn test_template_data_new() {
     let today = now.date_naive();
     let yesterday = today - Duration::days(1);
     let tomorrow = today + Duration::days(1);
-    
+
     assert_eq!(data.today, today.format("%Y-%m-%d").to_string());
     assert_eq!(data.yesterday, yesterday.format("%Y-%m-%d").to_string());
     assert_eq!(data.tomorrow, tomorrow.format("%Y-%m-%d").to_string());
-    assert!(["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-        .contains(&data.weekday.as_str()));
-    
+    assert!([
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday"
+    ]
+    .contains(&data.weekday.as_str()));
+
     // Verify created timestamp format (now includes seconds)
     let timestamp_pattern = Regex::new(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$").unwrap();
     assert!(timestamp_pattern.is_match(&data.created));
@@ -31,13 +39,15 @@ fn test_template_data_with_locale() {
     let today = now.date_naive();
     let yesterday = today - Duration::days(1);
     let tomorrow = today + Duration::days(1);
-    
+
     assert_eq!(data.today, today.format("%Y-%m-%d").to_string());
     assert_eq!(data.yesterday, yesterday.format("%Y-%m-%d").to_string());
     assert_eq!(data.tomorrow, tomorrow.format("%Y-%m-%d").to_string());
-    assert!(["mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag", "søndag"]
-        .contains(&data.weekday.as_str()));
-    
+    assert!(
+        ["mandag", "tirsdag", "onsdag", "torsdag", "fredag", "lørdag", "søndag"]
+            .contains(&data.weekday.as_str())
+    );
+
     // Verify created timestamp format (now includes seconds)
     let timestamp_pattern = Regex::new(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$").unwrap();
     assert!(timestamp_pattern.is_match(&data.created));
@@ -47,17 +57,17 @@ fn test_template_data_with_locale() {
 fn test_process_template() {
     let temp_dir = tempfile::tempdir().unwrap();
     let template_path = temp_dir.path().join("template.md");
-    
+
     let template_content = r#"# {{today}} ({{weekday}})
 Yesterday: [[{{yesterday}}]]
 Tomorrow: [[{{tomorrow}}]]
 Created: {{created}}"#;
-    
+
     fs::write(&template_path, template_content).unwrap();
-    
+
     let data = TemplateData::new(None);
     let result = process_template(template_path.to_str().unwrap(), &data);
-    
+
     assert!(result.contains(&data.today));
     assert!(result.contains(&data.weekday));
     assert!(result.contains(&data.yesterday));
@@ -105,4 +115,4 @@ fn test_get_template_content_no_template() {
 
     let content = get_template_content(&config);
     assert_eq!(content, "## 🕗\n\n");
-} 
+}

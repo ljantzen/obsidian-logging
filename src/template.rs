@@ -1,7 +1,7 @@
-use chrono::{Local, Duration, Datelike, Locale, Weekday};
+use crate::config::Config;
+use chrono::{Datelike, Duration, Local, Locale, Weekday};
 use std::fs::{self};
 use std::path::PathBuf;
-use crate::config::Config;
 
 pub struct TemplateData {
     pub today: String,
@@ -15,16 +15,16 @@ impl TemplateData {
     fn map_locale(locale_str: &str) -> Option<Locale> {
         match locale_str {
             "en_US" => Some(Locale::en_US),
-            "nb_NO" => Some(Locale::nb_NO),  // Norwegian Bokmål
-            "nn_NO" => Some(Locale::nn_NO),  // Norwegian Nynorsk
-            "de_DE" => Some(Locale::de_DE),  // German
-            "fr_FR" => Some(Locale::fr_FR),  // French
-            "es_ES" => Some(Locale::es_ES),  // Spanish
-            "it_IT" => Some(Locale::it_IT),  // Italian
-            "ja_JP" => Some(Locale::ja_JP),  // Japanese
-            "ko_KR" => Some(Locale::ko_KR),  // Korean
-            "ru_RU" => Some(Locale::ru_RU),  // Russian
-            "zh_CN" => Some(Locale::zh_CN),  // Chinese
+            "nb_NO" => Some(Locale::nb_NO), // Norwegian Bokmål
+            "nn_NO" => Some(Locale::nn_NO), // Norwegian Nynorsk
+            "de_DE" => Some(Locale::de_DE), // German
+            "fr_FR" => Some(Locale::fr_FR), // French
+            "es_ES" => Some(Locale::es_ES), // Spanish
+            "it_IT" => Some(Locale::it_IT), // Italian
+            "ja_JP" => Some(Locale::ja_JP), // Japanese
+            "ko_KR" => Some(Locale::ko_KR), // Korean
+            "ru_RU" => Some(Locale::ru_RU), // Russian
+            "zh_CN" => Some(Locale::zh_CN), // Chinese
             _ => Some(Locale::nb_NO),
         }
     }
@@ -42,7 +42,10 @@ impl TemplateData {
             Weekday::Sun => 6,
         };
         let target_date = base_monday + Duration::days(days_to_add);
-        target_date.format_localized("%A", locale).to_string().to_lowercase()
+        target_date
+            .format_localized("%A", locale)
+            .to_string()
+            .to_lowercase()
     }
 
     pub fn new(locale_str: Option<&str>) -> Self {
@@ -53,11 +56,9 @@ impl TemplateData {
 
         // Get weekday name based on locale
         let weekday = match locale_str {
-            Some(loc) => {
-                match Self::map_locale(loc) {
-                    Some(locale) => Self::get_weekday_name(today.weekday(), locale),
-                    None => Self::weekday_to_string(today.weekday())
-                }
+            Some(loc) => match Self::map_locale(loc) {
+                Some(locale) => Self::get_weekday_name(today.weekday(), locale),
+                None => Self::weekday_to_string(today.weekday()),
             },
             None => Self::weekday_to_string(today.weekday()),
         };
@@ -81,7 +82,8 @@ impl TemplateData {
             Weekday::Fri => "friday",
             Weekday::Sat => "saturday",
             Weekday::Sun => "sunday",
-        }.to_string()
+        }
+        .to_string()
     }
 }
 
@@ -113,9 +115,9 @@ pub fn process_template(template_path: &str, data: &TemplateData) -> String {
 
 pub fn get_template_content(config: &Config) -> String {
     let template_data = TemplateData::new(config.locale.as_deref());
-    
+
     match &config.template_path {
         Some(path) => process_template(path, &template_data),
         None => String::from("## 🕗\n\n"),
     }
-} 
+}

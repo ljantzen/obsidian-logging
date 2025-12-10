@@ -1,9 +1,9 @@
+use crate::config::Config;
+use crate::template::get_template_content;
+use crate::utils::get_log_path_for_date;
+use chrono::{Duration, Local};
 use std::fs::{create_dir_all, write};
 use std::process::Command;
-use chrono::{Local, Duration};
-use crate::config::Config;
-use crate::utils::get_log_path_for_date;
-use crate::template::get_template_content;
 
 pub fn edit_log_for_day(relative_day: i64, config: &Config, silent: bool) {
     let date = Local::now().date_naive() - Duration::days(relative_day);
@@ -26,4 +26,3 @@ pub fn edit_log_for_day(relative_day: i64, config: &Config, silent: bool) {
         eprintln!("Editor exited with non-zero exit code");
     }
 }
-

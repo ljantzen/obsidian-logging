@@ -1,8 +1,8 @@
 use chrono::{Duration, Local};
+use obsidian_logging::commands::list::list_log_for_day;
+use obsidian_logging::config::{Config, ListType, TimeFormat};
 use std::fs;
 use tempfile::TempDir;
-use obsidian_logging::config::{Config, TimeFormat, ListType};
-use obsidian_logging::commands::list::{list_log_for_day};
 
 fn setup_test_env() -> (TempDir, Config) {
     let temp_dir = TempDir::new().unwrap();
@@ -127,4 +127,4 @@ fn test_list_nonexistent_date() {
     // Test listing a non-existent date
     list_log_for_day(2, &config, false, false, &[]);
     // Note: We can't easily test stdout directly, but the code is covered
-} 
+}

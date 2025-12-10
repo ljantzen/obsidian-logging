@@ -1,10 +1,10 @@
-use std::fs;
-use std::env;
-use tempfile::TempDir;
-use obsidian_logging::config::{Config, ListType, TimeFormat};
+use chrono::{Duration, Local};
 use obsidian_logging::commands::edit::edit_log_for_day;
+use obsidian_logging::config::{Config, ListType, TimeFormat};
 use obsidian_logging::utils::get_log_path_for_date;
-use chrono::{Local, Duration};
+use std::env;
+use std::fs;
+use tempfile::TempDir;
 
 fn setup_test_env() -> (TempDir, Config) {
     let temp_dir = TempDir::new().unwrap();
@@ -26,7 +26,7 @@ fn setup_test_env() -> (TempDir, Config) {
 
 #[test]
 fn test_edit_today() {
-    let ( _temp_dir, config) = setup_test_env();
+    let (_temp_dir, config) = setup_test_env();
     let today = Local::now().date_naive();
     let file_path = get_log_path_for_date(today, &config);
 
@@ -101,7 +101,7 @@ fn test_edit_nonexistent_file() {
     env::set_var("EDITOR", "echo");
 
     // Test editing a non-existent file
-    edit_log_for_day(-1, &config, false);  // -1 means tomorrow now
+    edit_log_for_day(-1, &config, false); // -1 means tomorrow now
 
     // Verify the file was created with template content
     assert!(file_path.exists());
@@ -151,4 +151,4 @@ fn test_edit_future_date_creates_file() {
     assert!(file_path.exists());
     let content = fs::read_to_string(&file_path).unwrap();
     assert!(content.contains("## 🕗"));
-} 
+}

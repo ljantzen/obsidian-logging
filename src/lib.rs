@@ -1,8 +1,8 @@
-pub mod config;
 pub mod commands;
-pub mod utils;
+pub mod config;
 pub mod template;
+pub mod utils;
 
 // Re-export commonly used types and functions
+pub use commands::{add, edit, list};
 pub use config::{Config, ListType, TimeFormat};
-pub use commands::{add, edit, list}; 
