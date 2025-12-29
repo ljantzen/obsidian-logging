@@ -29,7 +29,7 @@ lazy_static = "1.4"
 [dev-dependencies]
 assert_cmd = "2.1.1"
 serial_test = "3.2.0"
-tempfile = "3.23.0"
+tempfile = "3.24.0"
 walkdir = "2.5.0"
 
 [[test]]
