@@ -83,12 +83,14 @@ update_version() {
 # Show usage
 show_usage() {
     cat << EOF
-Usage: ./release.sh <version>
+Usage: ./release.sh [version]
 
 Arguments:
   <version>    New version to release (semantic versioning: X.Y.Z)
+               If omitted, automatically increments the patch version
 
-Example:
+Examples:
+  ./release.sh              # Auto-increments patch version
   ./release.sh 1.0.0
   ./release.sh 1.1.0
 
@@ -276,19 +278,29 @@ publish_to_crates() {
     print_success "Published to crates.io"
 }
 
+# Increment patch version
+increment_patch_version() {
+    local version=$1
+    local major=$(echo $version | cut -d. -f1)
+    local minor=$(echo $version | cut -d. -f2)
+    local patch=$(echo $version | cut -d. -f3)
+    echo "$major.$minor.$((patch + 1))"
+}
+
 # Main function
 main() {
     # Parse arguments
     if [ $# -eq 0 ]; then
-        show_usage
-        exit 1
-    fi
+        # No arguments: automatically increment patch version
+        local current_version=$(get_version)
+        local new_version=$(increment_patch_version "$current_version")
+    else
+        local new_version=$1
 
-    local new_version=$1
-
-    if [ "$new_version" = "-h" ] || [ "$new_version" = "--help" ]; then
-        show_usage
-        exit 0
+        if [ "$new_version" = "-h" ] || [ "$new_version" = "--help" ]; then
+            show_usage
+            exit 0
+        fi
     fi
 
     echo "=========================================="
