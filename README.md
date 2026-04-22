@@ -40,6 +40,27 @@ cargo build --release
 
 Or download binaries directly from the [github releases page](https://github.com/ljantzen/obsidian-logging/releases).
 
+## Obsidian Native CLI
+
+Obsidian now has a native CLI tool (available as Early Access with Catalyst License). You can see the [Obsidian CLI documentation](https://help.obsidian.md/cli) for more information.
+
+### When to use obsidian-logging vs Obsidian CLI
+
+**Use obsidian-logging if you want:**
+- Quick, focused daily logging with timestamps
+- Organized logs by category (work, personal, health, etc.)
+- Reusable phrase templates for common entries
+- A lightweight tool optimized for quick note capture
+- Free and open-source solution
+
+**Use Obsidian CLI if you need:**
+- General vault operations and querying
+- Advanced automation and scripting
+- Plugin management
+- Full programmatic control of Obsidian
+- Integration with complex workflows
+
+For simple daily journaling from the command line, obsidian-logging provides a streamlined, dedicated solution. For comprehensive vault automation, Obsidian's native CLI offers broader capabilities.
 
 ## Tip
 
