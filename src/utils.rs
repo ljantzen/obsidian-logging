@@ -313,46 +313,43 @@ pub fn extract_log_entries(
         }
 
         entries = converted_entries;
-    } else if *list_type == ListType::Table
-        && found_type == ListType::Table
-        && include_header
-    {
+    } else if *list_type == ListType::Table && found_type == ListType::Table && include_header {
         // Format hasn't changed, but ensure table format has proper header
-                // Rebuild table with proper header and separator
-                let mut max_time_width = config.time_label.len();
-                let mut max_entry_width = config.event_label.len();
+        // Rebuild table with proper header and separator
+        let mut max_time_width = config.time_label.len();
+        let mut max_entry_width = config.event_label.len();
 
-                // First pass: calculate widths from existing entries
-                for entry in &entries {
-                    let (time, text) = parse_entry(entry);
-                    max_time_width = max_time_width.max(time.len());
-                    max_entry_width = max_entry_width.max(text.len());
-                }
+        // First pass: calculate widths from existing entries
+        for entry in &entries {
+            let (time, text) = parse_entry(entry);
+            max_time_width = max_time_width.max(time.len());
+            max_entry_width = max_entry_width.max(text.len());
+        }
 
-                // Rebuild table with header
-                let mut rebuilt_entries = Vec::new();
+        // Rebuild table with header
+        let mut rebuilt_entries = Vec::new();
+        rebuilt_entries.push(format_table_row(
+            &config.time_label,
+            &config.event_label,
+            max_time_width,
+            max_entry_width,
+        ));
+        rebuilt_entries.push(format_table_separator(max_time_width, max_entry_width));
+
+        // Add data rows
+        for entry in entries {
+            let (time, text) = parse_entry(&entry);
+            if !time.is_empty() && !text.is_empty() {
                 rebuilt_entries.push(format_table_row(
-                    &config.time_label,
-                    &config.event_label,
+                    &time,
+                    &text,
                     max_time_width,
                     max_entry_width,
                 ));
-                rebuilt_entries.push(format_table_separator(max_time_width, max_entry_width));
+            }
+        }
 
-                // Add data rows
-                for entry in entries {
-                    let (time, text) = parse_entry(&entry);
-                    if !time.is_empty() && !text.is_empty() {
-                        rebuilt_entries.push(format_table_row(
-                            &time,
-                            &text,
-                            max_time_width,
-                            max_entry_width,
-                        ));
-                    }
-                }
-
-                entries = rebuilt_entries;
+        entries = rebuilt_entries;
         // If include_header is false, keep original entries as-is
         // For bullet format, entries are already in the correct format
     }
