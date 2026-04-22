@@ -183,7 +183,7 @@ pub fn handle_plain_entry_with_time(
     all_entries.push((final_time, sentence.clone()));
 
     // Sort entries by timestamp
-    all_entries.sort_by(|a, b| a.0.cmp(&b.0));
+    all_entries.sort_by_key(|a| a.0);
 
     // Normalize all timestamps to include seconds and use current format
     // This ensures existing entries without seconds get reformatted with seconds
