@@ -27,7 +27,7 @@ dirs = "5.0.1"
 lazy_static = "1.4"
 
 [dev-dependencies]
-assert_cmd = "2.2.1"
+assert_cmd = "2.2.2"
 serial_test = "3.4.0"
 tempfile = "3.27.0"
 walkdir = "2.5.0"
