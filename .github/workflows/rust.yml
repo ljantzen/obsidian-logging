@@ -22,4 +22,6 @@ jobs:
         with:
           persist-credentials: false
       - name: Build
-        run: cargo build --verbose --release
+        run: cargo build --verbose --release --workspace
+      - name: Run tests
+        run: cargo test --verbose --workspace

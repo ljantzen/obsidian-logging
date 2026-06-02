@@ -24,21 +24,127 @@ This software is licensed under a combined MIT and SPPL license.  It is basicall
 
 ## Installation
 
-You can install obsidian-logging using cargo:
+### Binary (Command-line tool)
+
+You can install the obsidian-logging CLI tool using cargo:
 
 ```bash
-cargo install obsidian-logging
+cargo install obsidian-logging-cli
 ```
 
-Or build from source:
+Or download pre-built binaries directly from the [github releases page](https://github.com/ljantzen/obsidian-logging/releases).
+
+### Library (For Rust projects)
+
+To use obsidian-logging as a library in your Rust project:
+
+```toml
+[dependencies]
+obsidian-logging = "1.3"
+```
+
+Then in your code:
+
+```rust
+use obsidian_logging::{add, edit, list, Config};
+```
+
+See the [API documentation](https://docs.rs/obsidian-logging) for library usage.
+
+### Build from source
+
+Clone the repository and build the CLI:
 
 ```bash
 git clone https://github.com/ljantzen/obsidian-logging
 cd obsidian-logging
-cargo build --release
+cargo build --release -p obsidian-logging-cli
+./target/release/obsidian-logging --version
 ```
 
-Or download binaries directly from the [github releases page](https://github.com/ljantzen/obsidian-logging/releases).
+Or build everything (library + CLI):
+
+```bash
+cargo build --workspace --release
+```
+
+## Project Structure
+
+This project is organized as a Cargo workspace with two crates:
+
+- **`lib/`** — The core library crate (`obsidian-logging`)
+  - Contains all the logging, configuration, and file management logic
+  - Published to [crates.io](https://crates.io/crates/obsidian-logging)
+  - Can be used as a dependency in other Rust projects
+
+- **`app/`** — The CLI binary crate (`obsidian-logging-cli`)
+  - Provides the command-line interface and argument parsing
+  - Depends on the library crate
+  - Distributed as pre-built binaries via [GitHub Releases](https://github.com/ljantzen/obsidian-logging/releases)
+
+This separation allows the logging functionality to be reused in other Rust applications while keeping the CLI focused and maintainable.
+
+## Development
+
+### Quick start
+
+Clone and build the project:
+
+```bash
+git clone https://github.com/ljantzen/obsidian-logging
+cd obsidian-logging
+just build      # Build everything
+just test       # Run all tests
+just check      # Run fmt, clippy, and tests
+```
+
+### Using justfile
+
+This project includes a `justfile` for common development tasks. Install `just` if you don't have it:
+
+```bash
+cargo install just
+```
+
+Then use `just` to run tasks:
+
+```bash
+# Building
+just build              # Build lib + app
+just build-lib          # Build library only
+just build-app          # Build CLI only
+just build-release      # Build in release mode
+
+# Testing
+just test               # Test everything
+just test-lib           # Test library only
+just test-app           # Test CLI only
+
+# Code quality
+just fmt                # Format all code
+just fmt-check          # Check formatting without modifying
+just clippy             # Run clippy linter
+just check              # Run fmt-check + clippy + test (pre-commit)
+
+# Running and debugging
+just run --help         # Run CLI with arguments
+just version            # Show version
+
+# Release workflow
+just release            # Release with auto-incremented patch version
+just release-version 1.4.0  # Release specific version
+just publish            # Publish library to crates.io
+
+# Utility
+just help               # List all available commands
+just clean              # Clean build artifacts
+```
+
+The `check` target is recommended before committing:
+
+```bash
+just check
+```
 
 ## Obsidian Native CLI
 

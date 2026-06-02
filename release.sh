@@ -52,7 +52,7 @@ check_prerequisites() {
 
 # Get version from Cargo.toml
 get_version() {
-    grep '^version = ' Cargo.toml | head -1 | cut -d'"' -f2
+    grep '^version = ' lib/Cargo.toml | head -1 | cut -d'"' -f2
 }
 
 # Validate version format (semantic versioning)
@@ -76,7 +76,8 @@ update_version() {
     fi
 
     print_info "Updating version from $current_version to $new_version in Cargo.toml..."
-    sed -i "s/^version = \"$current_version\"/version = \"$new_version\"/" Cargo.toml
+    sed -i "s/^version = \"$current_version\"/version = \"$new_version\"/" lib/Cargo.toml
+    sed -i "s/^version = \"$current_version\"/version = \"$new_version\"/" app/Cargo.toml
     print_success "Version updated to $new_version"
 }
 
@@ -270,7 +271,8 @@ publish_to_crates() {
     print_info "Publishing to crates.io..."
 
     # Use --allow-dirty to allow Cargo.lock changes from the build
-    if ! cargo publish --allow-dirty; then
+    # Publish only the library crate
+    if ! cargo publish -p obsidian-logging --allow-dirty; then
         print_error "Failed to publish to crates.io"
         return 1
     fi
@@ -344,7 +346,7 @@ main() {
         print_success "Cargo.lock updated"
 
         print_info "Committing version and lock file changes..."
-        git add Cargo.toml Cargo.lock
+        git add lib/Cargo.toml app/Cargo.toml Cargo.lock
         git commit -m "Bump version to $new_version"
         print_success "Version and lock file commit created"
         echo ""
