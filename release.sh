@@ -352,7 +352,13 @@ main() {
         echo ""
 
         print_info "Pushing commits to remote..."
-        git push origin HEAD
+        if [ -d ".jj" ]; then
+            # In a jj repo, use jj git push
+            jj git push
+        else
+            # In a regular git repo, push to origin
+            git push origin
+        fi
         print_success "Commits pushed to remote"
         echo ""
 
