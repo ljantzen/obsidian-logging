@@ -18,7 +18,7 @@ exclude = [
 ]
 
 [dependencies]
-chrono = { version = "0.4.43", features = ["serde", "unstable-locales"] }
+chrono = { version = "0.4.45", features = ["serde", "unstable-locales"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_yaml = "0.9.29"
 regex = "1.12.3"
