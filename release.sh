@@ -354,11 +354,29 @@ main() {
 
         print_info "Pushing commits to remote..."
         if [ -d ".jj" ]; then
-            # In a jj repo, use jj git push
-            jj git push
+            # In a jj repo, the version-bump commit is created detached from
+            # any bookmark, so `jj git push` has nothing to push on its own.
+            # Advance the main bookmark to the new commit first.
+            jj bookmark set main -r @-
+            jj git push -b main
         else
             # In a regular git repo, push to origin
             git push origin
+        fi
+
+        # Verify the remote branch actually moved to our new commit, since
+        # a silent "Nothing changed." here means main was never updated.
+        local local_sha
+        local remote_sha
+        if [ -d ".jj" ]; then
+            local_sha=$(jj log -r 'main' --no-graph -T 'commit_id' 2>/dev/null)
+        else
+            local_sha=$(git rev-parse HEAD)
+        fi
+        remote_sha=$(git ls-remote origin refs/heads/main | cut -f1)
+        if [ "$local_sha" != "$remote_sha" ]; then
+            print_error "main on origin ($remote_sha) does not match the local release commit ($local_sha) - push did not take effect"
+            exit 1
         fi
         print_success "Commits pushed to remote"
         echo ""
