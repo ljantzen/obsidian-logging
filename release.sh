@@ -78,6 +78,11 @@ update_version() {
     print_info "Updating version from $current_version to $new_version in Cargo.toml..."
     sed -i "s/^version = \"$current_version\"/version = \"$new_version\"/" lib/Cargo.toml
     sed -i "s/^version = \"$current_version\"/version = \"$new_version\"/" app/Cargo.toml
+    sed -i "/^obsidian-logging = /s/version = \"$current_version\"/version = \"$new_version\"/" app/Cargo.toml
+    if ! grep -q "^obsidian-logging = .*version = \"$new_version\"" app/Cargo.toml; then
+        print_error "Failed to update obsidian-logging dependency version in app/Cargo.toml"
+        return 1
+    fi
     print_success "Version updated to $new_version"
 }
 
@@ -122,9 +127,9 @@ tag_exists_on_origin() {
 
 # Check if version is published on crates.io
 is_published_on_crates() {
-    local version=$1
-    # Query crates.io API to check if the version exists
-    curl -s "https://crates.io/api/v1/crates/$REPO_NAME/versions" | \
+    local crate=$1
+    local version=$2
+    curl -s -A "$REPO_NAME-release-script" "https://crates.io/api/v1/crates/$crate/versions" | \
         jq -e ".versions[] | select(.num == \"$version\")" >/dev/null 2>&1
 }
 
@@ -263,22 +268,25 @@ wait_for_workflow() {
 # Publish to crates.io
 publish_to_crates() {
     local version=$1
+    local crate
 
-    if is_published_on_crates "$version"; then
-        print_success "Version $version is already published on crates.io, skipping publication"
-        return 0
-    fi
+    # Library must be published first: the CLI depends on it by version
+    for crate in obsidian-logging obsidian-logging-cli; do
+        if is_published_on_crates "$crate" "$version"; then
+            print_success "$crate $version is already published on crates.io, skipping"
+            continue
+        fi
 
-    print_info "Publishing to crates.io..."
+        print_info "Publishing $crate to crates.io..."
 
-    # Use --allow-dirty to allow Cargo.lock changes from the build
-    # Publish only the library crate
-    if ! cargo publish -p obsidian-logging --allow-dirty; then
-        print_error "Failed to publish to crates.io"
-        return 1
-    fi
+        # Use --allow-dirty to allow Cargo.lock changes from the build
+        if ! cargo publish -p "$crate" --allow-dirty; then
+            print_error "Failed to publish $crate to crates.io"
+            return 1
+        fi
 
-    print_success "Published to crates.io"
+        print_success "Published $crate to crates.io"
+    done
 }
 
 # Increment patch version

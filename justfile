@@ -84,9 +84,10 @@ release:
 release-version VERSION:
     ./release.sh {{ VERSION }}
 
-# Publish lib crate to crates.io (must be run after GitHub release succeeds)
+# Publish lib and CLI crates to crates.io (must be run after GitHub release succeeds)
 publish:
     cargo publish -p obsidian-logging --allow-dirty
+    cargo publish -p obsidian-logging-cli --allow-dirty
 
 # Publish with dry-run (validates without uploading)
 publish-dry-run:
