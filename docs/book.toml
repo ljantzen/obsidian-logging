@@ -1,0 +1,19 @@
+[book]
+title = "obsidian-logging User Manual"
+description = "User manual for obsidian-logging, a CLI for logging to Obsidian daily notes"
+authors = ["Leif Jantzen"]
+language = "en"
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/ljantzen/obsidian-logging"
+edit-url-template = "https://github.com/ljantzen/obsidian-logging/edit/main/docs/{path}"
+
+[output.html.fold]
+enable = true
+level = 1

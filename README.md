@@ -6,6 +6,9 @@
 
 This little utility written in Rust makes it possible to log directly to todays daily note from the linux command line. 
 
+For a full walkthrough of installation, configuration, and every command-line flag, see the
+[mdBook user manual](docs/) in `docs/` (build it locally with `cd docs && mdbook build`).
+
 ## Version 1.3.0 Changes - Timestamp Format Update
 
 **Important:** Starting with version 1.3.0, timestamps now include seconds (HH:mm:ss format instead of HH:mm).
